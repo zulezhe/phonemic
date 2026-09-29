@@ -13,7 +13,6 @@ use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tauri::Emitter;
-use tokio::sync::watch;
 
 const HTTP_PORT: u16 = 9420;
 const HTTPS_PORT: u16 = 9421;
@@ -22,7 +21,6 @@ const PREFERRED_DEVICE: &str = "BlackHole";
 
 pub struct AppCtx {
     server: Mutex<Option<server::ServerHandle>>,
-    relay_kill: Mutex<Option<watch::Sender<bool>>>,
     engine: Mutex<Option<OutputEngine>>,
     /// None = 系统默认输出设备
     desired_device: Mutex<Option<String>>,
@@ -37,7 +35,7 @@ fn ctx() -> &'static AppCtx {
 }
 
 /// 统一数据目录；若旧的 identifier 目录存在则迁移过来（保留已信任的 CA/token）
-fn data_dir() -> PathBuf {
+pub(crate) fn data_dir() -> PathBuf {
     let base = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
     let dir = base.join("phonemic");
     let old = base.join("dev.phonemic.desktop");
@@ -243,13 +241,10 @@ struct PairingInfo {
 #[tauri::command]
 fn pairing_qr() -> Result<PairingInfo, String> {
     let st = status_response(ctx());
-    // 默认直连 HTTPS：浏览器可能提示一次"不是私密连接"，点"高级→继续访问"即可，
-    // 无需安装证书（可选路径：/setup 里提供 CA 信任以永久消除警告）
-    let qr_url = st
-        .https_url
-        .clone()
-        .or_else(|| st.setup_url.clone())
-        .ok_or("服务未运行")?;
+    // 默认二维码 = 云端配对（本地/跨网络都能连，证书正规无警告）；
+    // 局域网直连 URL 作为次要选项展示给同网络用户
+    let qr_url = relay::ensure_remote_pairing(ctx().stats.clone(), ctx().fifo.clone())
+        .map_err(|e| format!("{e:#}"))?;
     let setup_url = st.setup_url.clone().ok_or("服务未运行")?;
     let qr = qrcode::QrCode::new(qr_url.as_bytes()).map_err(|e| format!("{e}"))?;
     let qr_svg = qr
@@ -286,15 +281,8 @@ struct RemotePairing {
 #[tauri::command]
 fn remote_pairing() -> Result<RemotePairing, String> {
     let state = ctx();
-    let kp = relay::load_or_create_keypair(&data_dir()).map_err(|e| format!("{e:#}"))?;
-    let code = relay::new_pair_code();
-    // 同一时间仅一个远程会话：新配对顶掉旧的
-    if let Some(old) = state.relay_kill.lock().take() {
-        let _ = old.send(true);
-    }
-    let (tx, rx) = watch::channel(false);
-    *state.relay_kill.lock() = Some(tx);
-    let url = relay::spawn_remote_pairing(kp, code, state.stats.clone(), state.fifo.clone(), rx);
+    let url = relay::ensure_remote_pairing(state.stats.clone(), state.fifo.clone())
+        .map_err(|e| format!("{e:#}"))?;
     let qr = qrcode::QrCode::new(url.as_bytes()).map_err(|e| format!("{e}"))?;
     let qr_svg = qr
         .render::<qrcode::render::svg::Color>()
@@ -304,6 +292,12 @@ fn remote_pairing() -> Result<RemotePairing, String> {
         .build();
     tracing::info!("远程配对已发起: {url}");
     Ok(RemotePairing { url, qr_svg })
+}
+
+/// 轮换远程配对码（旧二维码立即失效）
+#[tauri::command]
+fn reset_remote_pairing() -> Result<String, String> {
+    relay::reset_remote_pairing().map_err(|e| format!("{e:#}"))
 }
 
 /// BlackHole 官方安装包（MIT，允许再分发，附 resources/BLACKHOLE-LICENSE）
@@ -386,7 +380,6 @@ pub fn run() {
     let fifo = AudioFifo::new(stats.clone());
     let _ = CTX.set(AppCtx {
         server: Mutex::new(None),
-        relay_kill: Mutex::new(None),
         engine: Mutex::new(None),
         desired_device: Mutex::new(None),
         stats,
@@ -402,6 +395,7 @@ pub fn run() {
             set_output_device,
             pairing_qr,
             remote_pairing,
+            reset_remote_pairing,
             install_driver
         ])
         .setup(|app| {

@@ -12,7 +12,8 @@ use anyhow::{anyhow, Context, Result};
 use futures_util::{SinkExt, StreamExt};
 use rand::Rng;
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
+use parking_lot::Mutex;
 use tokio::sync::mpsc;
 use tokio_tungstenite::tungstenite::Message;
 
@@ -41,6 +42,65 @@ pub fn new_pair_code() -> String {
     let mut b = [0u8; 32];
     rand::thread_rng().fill(&mut b);
     crypto::b64u_encode(&b)
+}
+
+/// 常驻配对槽：默认二维码背后的云端配对。同一配对码反复开房（会话结束/超时/断线
+/// 后自动重连），二维码内容因此保持稳定；显式 reset 才轮换。
+struct RemoteSlot {
+    url: String,
+    #[allow(dead_code)]
+    code: String,
+    kill: tokio::sync::watch::Sender<bool>,
+}
+
+static REMOTE_SLOT: OnceLock<Mutex<Option<RemoteSlot>>> = OnceLock::new();
+
+/// 确保常驻远程配对存在，返回配对 URL（幂等）
+pub fn ensure_remote_pairing(stats: Arc<Stats>, fifo: Arc<AudioFifo>) -> Result<String> {
+    let slot_lock = REMOTE_SLOT.get_or_init(|| Mutex::new(None));
+    let mut g = slot_lock.lock();
+    if let Some(s) = &*g {
+        return Ok(s.url.clone());
+    }
+    let keypair = load_or_create_keypair(&crate::app::data_dir())?;
+    let code = new_pair_code();
+    let url = format!("{PAGE_URL_BASE}/#p={}&k={}", code, keypair.public_b64u());
+    let (kill_tx, kill_rx) = tokio::sync::watch::channel(false);
+
+    let ws_base = format!("wss://{RELAY_HOST}/ws/pair/{code}");
+    let kp = keypair.clone();
+    let code2 = code.clone();
+    // 同步命令上下文 → 用 Tauri 的 async runtime（内部有 Tokio）
+    tauri::async_runtime::spawn(async move {
+        loop {
+            if *kill_rx.borrow() {
+                break;
+            }
+            let r = relay_session(ws_base.clone(), kp.clone(), code2.clone(), stats.clone(), fifo.clone(), kill_rx.clone()).await;
+            if *kill_rx.borrow() {
+                break;
+            }
+            match r {
+                Ok(()) => tracing::info!("远程会话结束，2 秒后重新开放配对"),
+                Err(e) => tracing::info!("远程配对房间结束: {e:#}，2 秒后重连"),
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        }
+        tracing::info!("常驻配对任务已停止");
+    });
+
+    *g = Some(RemoteSlot { url: url.clone(), code, kill: kill_tx });
+    Ok(url)
+}
+
+/// 轮换配对码（下次扫码需用新二维码）
+pub fn reset_remote_pairing() -> Result<String> {
+    let slot_lock = REMOTE_SLOT.get_or_init(|| Mutex::new(None));
+    let mut g = slot_lock.lock();
+    if let Some(old) = g.take() {
+        let _ = old.kill.send(true);
+    }
+    Ok("ok".into())
 }
 
 /// 发起远程配对：立即返回配对 URL，会话任务独立运行直到对端断开/超时/被替换。

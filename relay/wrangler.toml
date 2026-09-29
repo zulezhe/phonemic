@@ -21,6 +21,6 @@ binding = "ASSETS"
 
 [vars]
 # 等待配对超时（毫秒）
-WAIT_TTL_MS = "60000"
+WAIT_TTL_MS = "3600000"
 # 单会话最长时长
 SESSION_MAX_MS = "14400000"

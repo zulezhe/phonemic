@@ -51,18 +51,17 @@ app.innerHTML = `
   </header>
 
   <section class="card" id="qrCard">
-    <div class="label" id="qrLabel">手机扫码配对</div>
+    <div class="label" id="qrLabel">手机扫码配对（跨网络可用）</div>
     <div id="qrBox" class="qrbox"><div class="qr-skeleton"></div></div>
     <div id="pairRows">
-      <div class="row"><span>直连</span><span id="setupUrl" class="mono small">–</span></div>
-      <div class="row"><span>引导页(可选)</span><span id="httpsUrl" class="mono small">–</span></div>
-      <div class="fine" id="certHint"></div>
+      <div class="row"><span>局域网直连</span><span id="httpsUrl" class="mono small">–</span></div>
+            <div class="fine" id="certHint"></div>
     </div>
     <div id="connInfo" class="conn-info hidden">
       <div class="conn-row"><span>编码</span><b id="cMode">–</b></div>
       <div class="conn-row"><span>延迟</span><b id="cRtt">–</b></div>
     </div>
-    <button id="btnRemote" class="ghost">跨网络配对（手机用蜂窝/外部网络）</button>
+    <button id="btnRemote" class="ghost">重置配对码</button>
   </section>
 
   <section class="card">
@@ -107,6 +106,7 @@ let qrSvgCache = "";
 let connectedUi = false;
 let pairQrUrl = "";
 let pairSetupUrl = "";
+let pairHttpsUrl = "";
 
 function fmtNum(n: number): string {
   return n.toLocaleString("zh-CN");
@@ -124,6 +124,7 @@ async function refreshQr() {
     qrSvgCache = p.qr_svg;
     pairQrUrl = p.qr_url;
     pairSetupUrl = p.setup_url.replace(/#.*$/, "") + "/setup";
+    pairHttpsUrl = p.https_url ?? pairSetupUrl;
     qrShown = true;
     if (!connectedUi) renderPairingIdle();
   } catch (e) {
@@ -149,10 +150,10 @@ function renderPairingIdle() {
   $("#pairRows").classList.remove("hidden");
   $("#connInfo").classList.add("hidden");
   $("#qrBox").classList.remove("connected");
-  $("#setupUrl").textContent = pairQrUrl || "–";
-  $("#setupUrl").title = "点击复制";
-  $("#httpsUrl").textContent = pairSetupUrl || "–";
-  $("#httpsUrl").title = "一次性安装 CA 证书以永久消除浏览器的“不安全”提示";
+  $("#setupUrl").textContent = "云端（此二维码）";
+  $("#setupUrl").title = pairQrUrl || "";
+  $("#httpsUrl").textContent = pairHttpsUrl || "–";
+  $("#httpsUrl").title = "同一网络可直连（更快）；首次需“高级→继续访问”";
 }
 
 /** 已连接视图：绿色状态面板替代二维码 */
@@ -214,7 +215,7 @@ function render(st: StatusResponse) {
   }
 
   if (!st.setup_url) $("#setupUrl").textContent = "服务未运行";
-  $("#certHint").textContent = "首次打开如提示“不是私密连接”：高级 → 继续访问即可";
+  $("#certHint").textContent = "云端扫码无证书警告；局域网直连首次需“高级→继续访问”";
 
   $("#vRtt").textContent = s.rtt_ms != null ? `${Math.round(s.rtt_ms)}ms` : "–";
   const total = s.frames_in + s.lost_frames;
@@ -269,32 +270,20 @@ if (!isTauri) {
       alert(`切换输出设备失败: ${err}`);
     }
   });
-  let remoteCountdown: ReturnType<typeof setInterval> | null = null;
   $("#btnRemote").addEventListener("click", async () => {
     const btn = $<HTMLButtonElement>("#btnRemote");
+    btn.disabled = true;
     try {
-      const r = await invoke<{ url: string; qr_svg: string }>("remote_pairing");
-      $("#qrBox").innerHTML = r.qr_svg;
-      $("#qrLabel").textContent = "跨网络配对（60 秒内有效）";
-      $("#pairRows").classList.add("hidden");
-      console.log("remote pairing:", r.url);
-      let left = 60;
-      if (remoteCountdown) clearInterval(remoteCountdown);
-      remoteCountdown = setInterval(() => {
-        left -= 1;
-        $("#qrLabel").textContent = `跨网络配对（${left} 秒后失效）`;
-        if (left <= 0 || lastStatus?.stats.connected) {
-          clearInterval(remoteCountdown!);
-          remoteCountdown = null;
-          connectedUi = false;
-          renderPairingIdle();
-          btn.textContent = "跨网络配对（手机用蜂窝/外部网络）";
-        }
-      }, 1000);
+      await invoke<string>("reset_remote_pairing");
+      qrShown = false;
+      connectedUi = false;
+      await refreshQr();
+      renderPairingIdle();
     } catch (e) {
       console.error(e);
-      alert(`发起远程配对失败: ${e}`);
+      alert(`重置配对码失败: ${e}`);
     }
+    btn.disabled = false;
   });
   $("#btnDriver").addEventListener("click", async () => {
     const btn = $<HTMLButtonElement>("#btnDriver");
