@@ -17,7 +17,7 @@ tauri = { version = "2", features = [] }
 tauri-plugin-autostart = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "sync", "signal", "io-util"] }
 axum = { version = "0.7", features = ["ws"] }
 futures-util = "0.3"
 rust-embed = "8"
@@ -54,5 +54,8 @@ path = "src/bin/phonemic-server.rs"
 tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
 
 [profile.release]
-lto = true
-strip = true
+lto = true           # 跨 crate 聚合优化
+strip = true         # 去符号
+opt-level = "s"      # 体积优先（音频回调是简单内存拷贝，无高性能诉求）
+codegen-units = 1    # 单元合并，更小更慢编译
+panic = "abort"      # 去栈展开表
