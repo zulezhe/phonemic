@@ -20,7 +20,8 @@ PREV=$(SwitchAudioSource -c -t output)
 echo "当前输出设备: $PREV"
 trap 'SwitchAudioSource -t output -s "$PREV" >/dev/null' EXIT
 SwitchAudioSource -t output -s "BlackHole 2ch" >/dev/null || { echo "❌ 找不到 BlackHole 2ch（驱动未加载？试试重启）"; exit 1; }
-osascript -e 'set volume output volume 100' >/dev/null
+# 用户在公司办公：任何外放测试音量不得超过 5%
+osascript -e 'set volume output volume 5' >/dev/null
 
 ffmpeg -hide_banner -loglevel error -f avfoundation -i ":0" -t 6 -ar 48000 -ac 1 -y /tmp/bh-check.wav 2>/dev/null &
 REC=$!
