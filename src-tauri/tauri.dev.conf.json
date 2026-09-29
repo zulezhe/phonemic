@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "PhoneMic Dev",
+  "identifier": "dev.phonemic.desktop.dev",
+  "app": {
+    "windows": [
+      {
+        "title": "PhoneMic Dev",
+        "width": 430,
+        "height": 700,
+        "resizable": true
+      }
+    ]
+  }
+}

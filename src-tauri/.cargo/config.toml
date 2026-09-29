@@ -1,0 +1,4 @@
+# audiopus_sys 捆绑的 libopus 源码使用旧的 cmake_minimum_required(<3.5)，
+# CMake 4 移除了对 <3.5 的兼容；通过官方开关放行（仅影响 configure 阶段）。
+[env]
+CMAKE_POLICY_VERSION_MINIMUM = "3.5"
