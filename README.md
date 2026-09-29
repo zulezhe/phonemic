@@ -62,18 +62,19 @@ npm run tauri:dev      # 前端 HMR + Rust 改动自动重编译（Rust 重编�
 iPhone/Mac 信任证书后也可以直接访问 `https://phonemic.local:9421`（mDNS 自动发现）。
 配对 token 持久化，手机可收藏直连链接，无需每次扫码。
 
-## 里程碑
+## 路线图（低成本导向，2026-09-29 定稿）
 
-- [x] **M0** 脚手架：monorepo、Tauri 2 + Vite、phone 工程、协议文档
-- [x] **M1** 本机全链路：浏览器采集 → WS → 解码 → 抖动缓冲 → 本机扬声器，统计面板
-- [x] **M2** 局域网 + Mac 集成：自签 CA + HTTPS、QR 配对、mDNS（phonemic.local）、
-      BlackHole 检测与自动选择、输出设备切换、手机引导页
-- [ ] **M3** Windows：VB-CABLE 引导、安装包
-- [ ] **M4** 打磨：PWA、保活、自动重连、增益、i18n、CI
-- [ ] **M5** v0.1 发布
+- [x] **M0** 脚手架 / **M1** 本机全链路 / **M2** 局域网 + BlackHole 虚拟麦克风（真机验证 ✅）
+- [ ] **P1** Windows 端：VB-CABLE 引导 + 安装包
+- [ ] **P2** 打磨 + v0.1 发布（自启/PWA/i18n/CI）
+- [ ] **P3** 跨网络三级连接（设计见 [relay-design.md](docs/relay-design.md)）：
+      默认 CF 免费中继（E2EE）+ 后台赛马升级局域网/打洞，谁通切谁
+- [ ] **P4** 广告（官网/下载页，海外联盟）+ 自托管文档（Rust relay，Docker）
+- [ ] **P5** WebRTC 打洞（先 spike）→ 反向音频（电脑→手机当耳机）→ USB
+- [ ] **P6**（可选）打洞率/延迟优化
 
-协议细节见 [docs/protocol.md](docs/protocol.md)。测试：`cargo test --manifest-path src-tauri/Cargo.toml`（12 项）；
-E2E：`scripts/e2e_headless.sh`（本机链路）、`scripts/e2e_lan.sh`（HTTPS + 引导页 + 证书链校验）。
+商业模式：开源核心 + 官方免费中继（广告覆盖成本）+ 自托管（无广告无限流）。
+协议细节见 [docs/protocol.md](docs/protocol.md)。
 
 ### 证书说明
 
