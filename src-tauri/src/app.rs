@@ -3,6 +3,7 @@
 //! 所有运行方式（tauri dev / dev:app 签名包 / phonemic-server bin）共用同一数据目录。
 
 use crate::audio::{list_output_devices, start_output, AudioFifo, OutputEngine};
+use crate::relay;
 use crate::server::{self, lan_ip, ServerConfig, MDNS_HOST};
 use crate::state::{Stats, StatsSnapshot};
 use parking_lot::Mutex;
@@ -12,6 +13,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tauri::Emitter;
+use tokio::sync::watch;
 
 const HTTP_PORT: u16 = 9420;
 const HTTPS_PORT: u16 = 9421;
@@ -20,6 +22,7 @@ const PREFERRED_DEVICE: &str = "BlackHole";
 
 pub struct AppCtx {
     server: Mutex<Option<server::ServerHandle>>,
+    relay_kill: Mutex<Option<watch::Sender<bool>>>,
     engine: Mutex<Option<OutputEngine>>,
     /// None = 系统默认输出设备
     desired_device: Mutex<Option<String>>,
@@ -273,6 +276,36 @@ mod tests {
     }
 }
 
+/// 远程配对：生成一次性配对码并连入中继房间，返回云端配对 URL + 二维码
+#[derive(Serialize)]
+struct RemotePairing {
+    url: String,
+    qr_svg: String,
+}
+
+#[tauri::command]
+fn remote_pairing() -> Result<RemotePairing, String> {
+    let state = ctx();
+    let kp = relay::load_or_create_keypair(&data_dir()).map_err(|e| format!("{e:#}"))?;
+    let code = relay::new_pair_code();
+    // 同一时间仅一个远程会话：新配对顶掉旧的
+    if let Some(old) = state.relay_kill.lock().take() {
+        let _ = old.send(true);
+    }
+    let (tx, rx) = watch::channel(false);
+    *state.relay_kill.lock() = Some(tx);
+    let url = relay::spawn_remote_pairing(kp, code, state.stats.clone(), state.fifo.clone(), rx);
+    let qr = qrcode::QrCode::new(url.as_bytes()).map_err(|e| format!("{e}"))?;
+    let qr_svg = qr
+        .render::<qrcode::render::svg::Color>()
+        .min_dimensions(260, 260)
+        .dark_color(qrcode::render::svg::Color("#0f1218"))
+        .light_color(qrcode::render::svg::Color("#ffffff"))
+        .build();
+    tracing::info!("远程配对已发起: {url}");
+    Ok(RemotePairing { url, qr_svg })
+}
+
 /// BlackHole 官方安装包（MIT，允许再分发，附 resources/BLACKHOLE-LICENSE）
 const BH_PKG: &[u8] = include_bytes!("../resources/BlackHole2ch-0.7.1.pkg");
 
@@ -353,6 +386,7 @@ pub fn run() {
     let fifo = AudioFifo::new(stats.clone());
     let _ = CTX.set(AppCtx {
         server: Mutex::new(None),
+        relay_kill: Mutex::new(None),
         engine: Mutex::new(None),
         desired_device: Mutex::new(None),
         stats,
@@ -367,6 +401,7 @@ pub fn run() {
             output_devices,
             set_output_device,
             pairing_qr,
+            remote_pairing,
             install_driver
         ])
         .setup(|app| {

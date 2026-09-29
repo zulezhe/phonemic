@@ -1,7 +1,9 @@
 pub mod app;
 pub mod audio;
 pub mod cert;
+pub mod crypto;
 pub mod protocol;
+pub mod relay;
 pub mod server;
 pub mod session;
 pub mod state;

@@ -27,6 +27,11 @@ const state = {
   reconnectAttempts: 0,
   wakeLock: null as any,
   pingTimer: 0 as ReturnType<typeof setInterval>,
+  // 远程（中继+E2EE）模式
+  remote: null as { code: string; deskPub: string } | null,
+  aesKey: null as CryptoKey | null,
+  e2eeSent: false,
+  sendChain: Promise.resolve() as Promise<void>,
 };
 
 // ---------- DOM ----------
@@ -69,7 +74,10 @@ function setPhase(p: Phase, text?: string) {
 function renderStats() {
   const rtt = state.rttMs != null ? `${state.rttMs.toFixed(0)} ms` : "–";
   const db = state.level > 0 ? `${(20 * Math.log10(state.level)).toFixed(0)} dB` : "静音";
-  $stats.textContent = `延迟 ${rtt} · 电平 ${db} · ${state.mode === "opus" ? "Opus" : "PCM"}`;
+  const enc = state.mode === "opus" ? "Opus" : "PCM";
+  $stats.textContent = state.remote
+    ? `远程·E2EE · 延迟 ${rtt} · 电平 ${db} · ${enc}`
+    : `延迟 ${rtt} · 电平 ${db} · ${enc}`;
 }
 
 requestAnimationFrame(function loop() {
@@ -86,6 +94,59 @@ if (!window.isSecureContext) {
   location.replace(`/setup${location.hash}`);
 }
 
+// 远程模式：hash 形如 #p=<配对码>&k=<桌面公钥>
+function parseRemote(): { code: string; deskPub: string } | null {
+  const p = location.hash.match(/[?&#]p=([A-Za-z0-9_-]{16,64})/);
+  const k = location.hash.match(/[?&#]k=([A-Za-z0-9_-]{40,200})/);
+  return p && k ? { code: p[1], deskPub: k[1] } : null;
+}
+
+function b64uToBytes(s: string): Uint8Array<ArrayBuffer> {
+  const b = atob(s.replace(/-/g, "+").replace(/_/g, "/"));
+  const out = new Uint8Array(b.length);
+  for (let i = 0; i < b.length; i++) out[i] = b.charCodeAt(i);
+  return out;
+}
+
+function bytesToB64u(u8: Uint8Array): string {
+  let s = "";
+  for (const b of u8) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+const te = new TextEncoder();
+
+/** E2EE：手机临时 P-256 密钥对 + 桌面公钥（二维码带外可信）→ HKDF → AES-GCM */
+async function initRemoteCrypto(deskPubB64u: string, pairCode: string): Promise<string> {
+  const deskKey = await crypto.subtle.importKey("raw", b64uToBytes(deskPubB64u), { name: "ECDH", namedCurve: "P-256" }, false, []);
+  const kp = (await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"])) as CryptoKeyPair;
+  const shared = new Uint8Array(await crypto.subtle.deriveBits({ name: "ECDH", public: deskKey } as any, kp.privateKey, 256));
+  const hk = await crypto.subtle.importKey("raw", shared as any, "HKDF", false, ["deriveBits"]);
+  const keyRaw = await crypto.subtle.deriveBits(
+    { name: "HKDF", hash: "SHA-256", salt: te.encode(pairCode), info: te.encode("phonemic/v1") },
+    hk,
+    256,
+  );
+  state.aesKey = await crypto.subtle.importKey("raw", keyRaw, "AES-GCM", false, ["encrypt"]);
+  return bytesToB64u(new Uint8Array(await crypto.subtle.exportKey("raw", kp.publicKey)));
+}
+
+/** 远程模式加密发送（promise 链保证帧顺序） */
+function sendEncryptedFrame(plain: Uint8Array) {
+  const ws = state.ws;
+  if (!ws || !state.aesKey) return;
+  state.sendChain = state.sendChain.then(async () => {
+    if (ws.readyState !== WebSocket.OPEN) return;
+    const nonce = crypto.getRandomValues(new Uint8Array(12));
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce as any }, state.aesKey!, plain.subarray(7) as any));
+    const f = plain.slice();
+    f[0] |= 0x80;
+    f.set(nonce, 7);
+    f.set(ct, 7 + 12);
+    ws.send(f);
+  }).catch(() => {});
+}
+
 function token(): string {
   const m = location.hash.match(/token=([A-Za-z0-9_-]+)/);
   return m ? m[1] : new URLSearchParams(location.search).get("token") ?? "";
@@ -93,6 +154,7 @@ function token(): string {
 
 function wsUrl(): string {
   const proto = location.protocol === "https:" ? "wss" : "ws";
+  if (state.remote) return `${proto}://${location.host}/ws/pair/${state.remote.code}`;
   return `${proto}://${location.host}/ws?token=${encodeURIComponent(token())}`;
 }
 
@@ -122,8 +184,13 @@ function sendAudio(tsMs: number, f32: Float32Array | null, opusBytes: Uint8Array
   if (state.ws?.readyState !== WebSocket.OPEN) return;
   const kind = opusBytes ? FRAME_OPUS : FRAME_PCM_F32;
   const payload: any = opusBytes ?? f32!;
-  state.ws.send(buildAudioFrame(kind, state.seq, tsMs, payload) as any);
+  const frame = buildAudioFrame(kind, state.seq, tsMs, payload);
   state.seq = (state.seq + 1) & 0xffff;
+  if (state.remote && state.aesKey) {
+    sendEncryptedFrame(frame);
+  } else {
+    state.ws.send(frame as any);
+  }
 }
 
 // ---------- 连接 ----------
@@ -148,12 +215,36 @@ function connect() {
   ws.onopen = () => {
     sendJson({ type: "hello", mode: state.mode, sampleRate: SAMPLE_RATE, channels: 1 });
   };
-  ws.onmessage = (ev) => {
+  ws.onmessage = async (ev) => {
     if (typeof ev.data !== "string") return;
-    let msg: ServerText;
+    let msg: any;
     try {
       msg = JSON.parse(ev.data);
     } catch {
+      return;
+    }
+    // 远程模式握手：配对就绪后先发 E2EE 公钥再发 hello
+    if (msg.type === "roomState" && msg.state === "ready" && state.remote && !state.e2eeSent) {
+      state.e2eeSent = true;
+      try {
+        const myPub = await initRemoteCrypto(state.remote.deskPub, state.remote.code);
+        ws.send(JSON.stringify({ type: "e2eeInit", pub: myPub }));
+      } catch {
+        setPhase("error", "加密初始化失败");
+        state.running = false;
+        return;
+      }
+      sendJson({ type: "hello", mode: state.mode, sampleRate: SAMPLE_RATE, channels: 1 });
+      return;
+    }
+    if (msg.type === "error") {
+      setPhase("error", msg.code === "EXPIRED" ? "二维码已过期，请在电脑端重新生成" : `中继错误: ${msg.code ?? ""}`);
+      state.running = false;
+      return;
+    }
+    if (msg.type === "bye") {
+      setPhase("idle", state.remote ? "会话已结束，请刷新二维码" : "对方已断开");
+      state.running = false;
       return;
     }
     if (msg.type === "welcome") {
@@ -178,11 +269,14 @@ function connect() {
   };
   ws.onclose = () => {
     clearInterval(state.pingTimer);
-    if (state.running) {
+    if (state.running && !state.remote) {
       state.reconnectAttempts += 1;
       const delay = Math.min(8000, 500 * 2 ** Math.min(4, state.reconnectAttempts - 1));
       setPhase("reconnecting");
       setTimeout(() => state.running && connect(), delay);
+    } else if (state.running && state.remote) {
+      setPhase("error", "远程连接断开，请在电脑端重新生成二维码");
+      state.running = false;
     }
   };
   ws.onerror = () => {};
@@ -295,6 +389,8 @@ async function stopAudio() {
   state.node = null;
   state.reconnectAttempts = 0;
   state.rttMs = null;
+  state.aesKey = null;
+  state.e2eeSent = false;
   await state.wakeLock?.release?.().catch(() => {});
   state.wakeLock = null;
   setPhase("idle");
@@ -327,8 +423,15 @@ $mic.addEventListener("click", async () => {
   connect();
 });
 
-// 自动开始（供自动化测试：?autostart=1）
-if (new URLSearchParams(location.search).get("autostart") === "1") {
+// 远程模式（hash 携带 p=/k=）或自动开始
+state.remote = parseRemote();
+if (state.remote) {
+  document.querySelector<HTMLElement>(".hint")!.textContent =
+    "跨网络模式 · 端到端加密 · 语音经 Cloudflare 中继转发";
+}
+const autoStart =
+  state.remote != null || new URLSearchParams(location.search).get("autostart") === "1";
+if (autoStart) {
   state.running = true;
   pickMode().then((m) => {
     state.mode = m;

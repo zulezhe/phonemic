@@ -2,6 +2,7 @@
 //! 默认开启 HTTPS（自签 CA 存在数据目录），--no-https 关闭。
 
 use phonemic::audio::{start_output, AudioFifo};
+use phonemic::relay;
 use phonemic::server::{lan_ip, start_server, ServerConfig};
 use phonemic::state::Stats;
 use std::sync::Arc;
@@ -56,7 +57,7 @@ async fn main() -> anyhow::Result<()> {
         lan_ip: lan_ip(),
         dev_no_token: dev,
     };
-    let handle = start_server(cfg, stats.clone(), fifo).await?;
+    let handle = start_server(cfg, stats.clone(), fifo.clone()).await?;
     let ip = lan_ip().map(|i| i.to_string()).unwrap_or_else(|| "127.0.0.1".into());
     let token_note = if dev { "(--dev 已跳过 token)" } else { "" };
     println!("手机引导页: http://{ip}:{}/setup#token={} {token_note}", handle.port, handle.token);
@@ -67,6 +68,21 @@ async fn main() -> anyhow::Result<()> {
     }
     if let Some(qr) = terminal_qr(&qr_target) {
         println!("\n{qr}");
+    }
+
+    // --remote-pair：发起跨网络配对（打印 URL + 终端二维码）
+    // kill Sender 必须存活到进程结束（块内声明会被 drop，导致会话被误判"被替换"）
+    let mut remote_keep_tx: Option<tokio::sync::watch::Sender<bool>> = None;
+    if args.iter().any(|a| a == "--remote-pair") {
+        let kp = relay::load_or_create_keypair(&dirs::data_local_dir().unwrap().join("phonemic"))
+            .expect("加载远程密钥失败");
+        let (tx, rx) = tokio::sync::watch::channel(false);
+        remote_keep_tx = Some(tx);
+        let url = relay::spawn_remote_pairing(kp, relay::new_pair_code(), stats.clone(), fifo.clone(), rx);
+        println!("远程配对 URL: {url}");
+        if let Some(qr) = terminal_qr(&url) {
+            println!("\n{qr}");
+        }
     }
 
     println!("每 2 秒打印统计，Ctrl-C 退出");

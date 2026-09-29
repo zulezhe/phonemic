@@ -7,6 +7,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 #[derive(Default)]
 pub struct Stats {
     connected: AtomicBool,
+    remote: AtomicBool,
     mode: Mutex<String>,
     frames_in: AtomicU64,
     samples_in: AtomicU64,
@@ -24,6 +25,7 @@ pub struct Stats {
 impl Stats {
     pub fn reset_session(&self) {
         self.connected.store(false, Ordering::Relaxed);
+        self.remote.store(false, Ordering::Relaxed);
         *self.mode.lock() = String::new();
         self.frames_in.store(0, Ordering::Relaxed);
         self.samples_in.store(0, Ordering::Relaxed);
@@ -34,6 +36,10 @@ impl Stats {
         self.set_level(0.0);
         self.last_frame_at.store(0, Ordering::Relaxed);
         *self.rtt_ms.lock() = None;
+    }
+
+    pub fn set_remote(&self, v: bool) {
+        self.remote.store(v, Ordering::Relaxed);
     }
 
     pub fn set_connected(&self, mode: &str) {
@@ -59,6 +65,7 @@ impl Stats {
         let now = crate::audio::unix_ms();
         StatsSnapshot {
             connected: self.connected.load(Ordering::Relaxed),
+            remote: self.remote.load(Ordering::Relaxed),
             mode: self.mode.lock().clone(),
             frames_in: self.frames_in.load(Ordering::Relaxed),
             samples_in: self.samples_in.load(Ordering::Relaxed),
@@ -117,6 +124,7 @@ impl Stats {
 #[derive(Serialize, Clone, Debug)]
 pub struct StatsSnapshot {
     pub connected: bool,
+    pub remote: bool,
     pub mode: String,
     pub frames_in: u64,
     pub samples_in: u64,

@@ -37,13 +37,20 @@ axum-server = { version = "0.7", features = ["tls-rustls-no-provider"] }
 qrcode = "0.14"
 mdns-sd = "0.11"
 dirs = "5"
+# P3c 远程中继 + E2EE
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
+p256 = { version = "0.13", features = ["ecdh"] }
+hkdf = "0.12"
+sha2 = "0.10"
+aes-gcm = "0.10"
+base64 = "0.22"
 
 [[bin]]
 name = "phonemic-server"
 path = "src/bin/phonemic-server.rs"
 
 [dev-dependencies]
-tokio-tungstenite = "0.24"
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
 
 [profile.release]
 lto = true

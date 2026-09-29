@@ -123,13 +123,15 @@ pub struct Session { active: Box<dyn AudioTransport>, ... }  // 解码/jitter/�
 
 ## 6. E2EE（仅中继路径；本地 TLS / DataChannel DTLS 已加密）
 
-- **桌面静态密钥**：X25519 密钥对，安装时生成、持久化；公钥进二维码（带外可信）
-- **每会话前向保密**：手机生成临时 X25519 对；`shared = ECDH(phone_ephemeral, desktop_static)`；
+- **桌面静态密钥**：P-256 密钥对，安装时生成、持久化；公钥进二维码（带外可信）
+- **每会话前向保密**：手机生成临时 P-256 对；`shared = ECDH(phone_ephemeral, desktop_static)`；
   `K_session = HKDF-SHA256(shared, salt=pair_code, info="phonemic/v1")`
-- 手机→桌面首帧（明文经 relay）：`{phoneEphemeralPub}`（32B）
-- 之后所有会话负载：AES-GCM-256，每帧 12B 随机 nonce 前置 + 16B tag（+28B/帧 ≈ +1.4kbps，可忽略；
-  后续可优化为计数器 nonce）
-- 手机端 WebCrypto（X25519 + AES-GCM 原生支持）；桌面端 Rust `x25519-dalek` + `aes-gcm`
+- 手机→桌面首帧（明文经 relay）：`{type:"e2eeInit", pub}`（sec1 65B base64url）
+- 之后**音频二进制帧**加密：byte0 |= 0x80，payload = [12B nonce][AES-GCM ct||tag]（+28B/帧 ≈ +1.4kbps）
+- 文本控制帧（hello/welcome/ping/e2eeInit/roomState）明文——不含敏感内容，relay 原样透传
+- 曲线选择：P-256 而非 X25519（微信内置浏览器等国内内核 WebCrypto 普遍缺 X25519，P-256 全平台保底）
+- 手机端 WebCrypto；桌面端 Rust `p256` + `hkdf` + `aes-gcm`；互操作测试向量见
+  `relay/test/gen_interop_vector.mjs` + `crypto.rs::webcrypto_interop`
 - relay/MITM 防护：公钥来自二维码而非 relay 下发 ✓
 
 ## 7. 路径升级（赛马）

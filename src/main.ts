@@ -5,6 +5,7 @@ import "./styles.css";
 
 interface StatsSnapshot {
   connected: boolean;
+  remote: boolean;
   mode: string;
   frames_in: number;
   samples_in: number;
@@ -61,6 +62,7 @@ app.innerHTML = `
       <div class="conn-row"><span>编码</span><b id="cMode">–</b></div>
       <div class="conn-row"><span>延迟</span><b id="cRtt">–</b></div>
     </div>
+    <button id="btnRemote" class="ghost">跨网络配对（手机用蜂窝/外部网络）</button>
   </section>
 
   <section class="card">
@@ -195,7 +197,9 @@ function renderBlackholeHint() {
 function render(st: StatusResponse) {
   lastStatus = st;
   const s = st.stats;
-  $("#running").textContent = s.connected ? "直播中" : st.running ? "等待手机" : "已停止";
+  const pill = s.connected ? "直播中" : st.running ? "等待手机" : "已停止";
+  $("#running").textContent = (s.remote || s.connected) && st.stats?.remote === undefined ? pill : pill;
+  $("#running").textContent = pill + (s.remote ? " ·远程" : "");
   $("#running").className = `pill ${s.connected ? "ok" : st.running ? "wait" : "off"}`;
 
   // 配对视图 ↔ 已连接视图切换（只在状态变化时重绘，避免每 500ms 闪动）
@@ -263,6 +267,33 @@ if (!isTauri) {
     } catch (err) {
       console.error(err);
       alert(`切换输出设备失败: ${err}`);
+    }
+  });
+  let remoteCountdown: ReturnType<typeof setInterval> | null = null;
+  $("#btnRemote").addEventListener("click", async () => {
+    const btn = $<HTMLButtonElement>("#btnRemote");
+    try {
+      const r = await invoke<{ url: string; qr_svg: string }>("remote_pairing");
+      $("#qrBox").innerHTML = r.qr_svg;
+      $("#qrLabel").textContent = "跨网络配对（60 秒内有效）";
+      $("#pairRows").classList.add("hidden");
+      console.log("remote pairing:", r.url);
+      let left = 60;
+      if (remoteCountdown) clearInterval(remoteCountdown);
+      remoteCountdown = setInterval(() => {
+        left -= 1;
+        $("#qrLabel").textContent = `跨网络配对（${left} 秒后失效）`;
+        if (left <= 0 || lastStatus?.stats.connected) {
+          clearInterval(remoteCountdown!);
+          remoteCountdown = null;
+          connectedUi = false;
+          renderPairingIdle();
+          btn.textContent = "跨网络配对（手机用蜂窝/外部网络）";
+        }
+      }, 1000);
+    } catch (e) {
+      console.error(e);
+      alert(`发起远程配对失败: ${e}`);
     }
   });
   $("#btnDriver").addEventListener("click", async () => {
