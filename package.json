@@ -16,7 +16,8 @@
     "server:dev": "npm run phone:build && cargo run --manifest-path src-tauri/Cargo.toml --bin phonemic-server --"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.1.1"
+    "@tauri-apps/api": "^2.1.1",
+    "@tauri-apps/plugin-autostart": "^2.2.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0",

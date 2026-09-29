@@ -258,3 +258,10 @@ code {
   color: #8b93a1;
   user-select: all;
 }
+
+button.mini {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+}

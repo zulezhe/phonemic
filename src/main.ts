@@ -1,6 +1,7 @@
 // PhoneMic 桌面端 UI：配对二维码、服务状态、设备选择、实时统计。
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import "./styles.css";
 
 interface StatsSnapshot {
@@ -69,6 +70,7 @@ app.innerHTML = `
     <div class="row"><span>输出设备</span>
       <select id="deviceSelect"><option>加载中…</option></select>
     </div>
+    <div class="row"><span>开机自动启动</span><button id="btnAutostart" class="mini">…</button></div>
     <div class="fine" id="blackholeHint"></div>
     <button id="btnDriver" class="ghost hidden">一键安装虚拟麦克风驱动</button>
     <div class="actions">
@@ -320,6 +322,29 @@ if (!isTauri) {
     }
     btn.disabled = false;
   });
+  (async () => {
+    const btn = $<HTMLButtonElement>("#btnAutostart");
+    const render = async () => {
+      try {
+        btn.textContent = (await isEnabled()) ? "已开启 ✓（点击关闭）" : "未开启（点击启用）";
+      } catch {
+        btn.textContent = "不可用";
+        btn.disabled = true;
+      }
+    };
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        if (await isEnabled()) await disable();
+        else await enable();
+      } catch (e) {
+        console.error(e);
+      }
+      await render();
+      btn.disabled = false;
+    });
+    await render();
+  })();
   $("#btnDriver").addEventListener("click", async () => {
     const btn = $<HTMLButtonElement>("#btnDriver");
     btn.disabled = true;

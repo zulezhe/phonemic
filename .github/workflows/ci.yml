@@ -1,0 +1,44 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  rust:
+    name: Rust（macOS）
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: brew install cmake
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm --prefix phone install
+      - run: npm --prefix phone run build   # rust-embed 需要 phone/dist 存在
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: "src-tauri" }
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
+
+  web:
+    name: 前端（桌面 UI + 手机页）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - run: npm --prefix phone install
+      - run: npx tsc --noEmit -p tsconfig.json
+      - run: npx tsc --noEmit -p phone/tsconfig.json
+      - run: npm --prefix phone run build
+
+  relay:
+    name: 中继（Cloudflare Worker）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm --prefix relay install
+      - run: npx --prefix relay tsc -p relay/tsconfig.json

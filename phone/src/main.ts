@@ -1,4 +1,48 @@
 // PhoneMic 手机端：采集麦克风 → Opus(可用时)/PCM → WebSocket 推流到桌面端。
+
+// ---------- i18n ----------
+const STR = {
+  zh: {
+    idle: "未连接", connecting: "连接中…", live: "直播中", reconnecting: "重连中…", error: "出错",
+    tapToStart: "点击开始，把手机对准自己说话",
+    keepHint: "传输中请保持屏幕常亮与电脑同一 Wi-Fi",
+    remoteHint: "跨网络连接 · 语音已加密",
+    encLive: "远程·E2EE", silent: "静音",
+    errPerm: "麦克风权限被拒：请在浏览器中允许本页面使用麦克风后重试",
+    errInsecure: "连接不安全：请从电脑端二维码进入",
+    errMic: "麦克风不可用：若浏览器提示证书问题，需先点“高级 → 继续访问”",
+    errCrypto: "加密初始化失败",
+    errExpired: "二维码已过期，请在电脑端重新生成",
+    errGeneric: "连接出错，请重试",
+    byeRemote: "本次连接已结束，可重新扫码",
+    byePeer: "对方已断开",
+    errClosed: "连接已断开，请重新扫码",
+    stageCrypto: "正在建立加密…",
+    stageMic: "正在启动麦克风…",
+    silent2: "静音", db: "dB", delay: "延迟",
+  },
+  en: {
+    idle: "Not connected", connecting: "Connecting…", live: "LIVE", reconnecting: "Reconnecting…", error: "Error",
+    tapToStart: "Tap to start — speak toward your phone",
+    keepHint: "Keep the screen on while streaming",
+    remoteHint: "Cross-network · voice encrypted",
+    encLive: "Remote·E2EE", silent: "silent",
+    errPerm: "Microphone denied. Please allow mic access and retry.",
+    errInsecure: "Insecure connection: open via the QR code on your computer",
+    errMic: "Microphone unavailable. If the browser shows a certificate warning, choose Advanced → Proceed.",
+    errCrypto: "Encryption setup failed",
+    errExpired: "QR code expired — regenerate it on your computer",
+    errGeneric: "Connection error, please retry",
+    byeRemote: "Session ended — scan again",
+    byePeer: "Peer disconnected",
+    errClosed: "Disconnected — scan again",
+    stageCrypto: "Establishing encryption…",
+    stageMic: "Starting microphone…",
+    silent2: "silent", db: "dB", delay: "Latency",
+  },
+} as const;
+type Lang = Record<string, string>;
+const L: Lang = (navigator.language || "zh").toLowerCase().startsWith("zh") ? STR.zh : STR.en;
 import {
   buildAudioFrame,
   FRAME_OPUS,
@@ -58,11 +102,11 @@ const $micSvg = $mic.querySelector("svg")!;
 function setPhase(p: Phase, text?: string) {
   state.phase = p;
   const labels: Record<Phase, string> = {
-    idle: "未连接",
-    connecting: "连接中…",
-    live: "直播中",
-    reconnecting: "重连中…",
-    error: "出错",
+    idle: L.idle,
+    connecting: L.connecting,
+    live: L.live,
+    reconnecting: L.reconnecting,
+    error: L.error,
   };
   $phase.textContent = text ?? labels[p];
   $mic.classList.toggle("on", p === "live");
@@ -75,11 +119,11 @@ function setPhase(p: Phase, text?: string) {
 
 function renderStats() {
   const rtt = state.rttMs != null ? `${state.rttMs.toFixed(0)} ms` : "–";
-  const db = state.level > 0 ? `${(20 * Math.log10(state.level)).toFixed(0)} dB` : "静音";
+  const db = state.level > 0 ? `${(20 * Math.log10(state.level)).toFixed(0)} ${L.db}` : L.silent2;
   const enc = state.mode === "opus" ? "Opus" : "PCM";
   $stats.textContent = state.remote
-    ? `远程·E2EE · 延迟 ${rtt} · 电平 ${db} · ${enc}`
-    : `延迟 ${rtt} · 电平 ${db} · ${enc}`;
+    ? `${L.encLive} · ${L.delay} ${rtt} · ${db} · ${enc}`
+    : `${L.delay} ${rtt} · ${db} · ${enc}`;
 }
 
 requestAnimationFrame(function loop() {
@@ -244,26 +288,26 @@ function attachWsHandlers(ws: WebSocket) {
     // 远程模式握手：配对就绪后先发加密公钥再发 hello
     if (msg.type === "roomState" && msg.state === "ready" && state.remote && !state.e2eeSent) {
       state.e2eeSent = true;
-      setPhase("connecting", "正在建立加密…");
+      setPhase("connecting", L.stageCrypto);
       try {
         const myPub = await initRemoteCrypto(state.remote.deskPub, state.remote.code);
         ws.send(JSON.stringify({ type: "e2eeInit", pub: myPub }));
       } catch {
-        setPhase("error", "加密初始化失败");
+        setPhase("error", L.errCrypto);
         state.running = false;
         return;
       }
       sendJson({ type: "hello", mode: state.mode, sampleRate: SAMPLE_RATE, channels: 1 });
-      setPhase("connecting", "正在启动麦克风…");
+      setPhase("connecting", L.stageMic);
       return;
     }
     if (msg.type === "error") {
-      setPhase("error", msg.code === "EXPIRED" ? "二维码已过期，请在电脑端重新生成" : "连接出错，请重试");
+      setPhase("error", msg.code === "EXPIRED" ? L.errExpired : L.errGeneric);
       state.running = false;
       return;
     }
     if (msg.type === "bye") {
-      setPhase("idle", state.remote ? "本次连接已结束，可重新扫码" : "对方已断开");
+      setPhase("idle", state.remote ? L.byeRemote : L.byePeer);
       state.running = false;
       return;
     }
@@ -300,7 +344,7 @@ function attachWsHandlers(ws: WebSocket) {
       setPhase("reconnecting");
       setTimeout(() => state.running && connect(), delay);
     } else if (state.running && state.remote) {
-      setPhase("error", "连接已断开，请重新扫码");
+      setPhase("error", L.errClosed);
       state.running = false;
     }
   };
@@ -329,11 +373,11 @@ async function startAudio() {
     const name = err?.name ?? "";
     let hint: string;
     if (name === "NotAllowedError" || name === "SecurityError") {
-      hint = "麦克风权限被拒：请在浏览器中允许本页面使用麦克风后重试";
+      hint = L.errPerm;
     } else if (!window.isSecureContext) {
-      hint = "连接不安全：请从电脑端二维码进入（https 链接）";
+      hint = L.errInsecure;
     } else {
-      hint = "麦克风不可用：若浏览器提示证书问题，需先点“高级 → 继续访问”";
+      hint = L.errMic;
     }
     setPhase("error", hint);
     state.running = false;
@@ -516,11 +560,20 @@ $mic.addEventListener("click", async () => {
   connect();
 });
 
+// PWA Service Worker 注册（https 或 localhost）
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
+
+// 保活增强：WakeLock 可能被系统回收，周期性补锁
+setInterval(() => {
+  if (state.running && document.visibilityState === "visible") keepAwake();
+}, 30_000);
+
 // 远程模式（hash 携带 p=/k=）或自动开始
 state.remote = parseRemote();
 if (state.remote) {
-  document.querySelector<HTMLElement>(".hint")!.textContent =
-    "跨网络连接 · 语音已加密";
+  document.querySelector<HTMLElement>(".hint")!.textContent = L.remoteHint;
 }
 const autoStart =
   state.remote != null || new URLSearchParams(location.search).get("autostart") === "1";

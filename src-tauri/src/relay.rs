@@ -94,7 +94,7 @@ pub fn ensure_remote_pairing(stats: Arc<Stats>, fifo: Arc<AudioFifo>, extra: &st
     });
 
     *g = Some(RemoteSlot { url: url.clone(), extra: extra.to_string(), code, kill: kill_tx });
-    Ok(url)
+    Ok(format!("{url}{extra}"))
 }
 
 /// 轮换配对码（下次扫码需用新二维码）

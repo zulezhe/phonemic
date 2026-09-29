@@ -241,8 +241,10 @@ struct PairingInfo {
 #[tauri::command]
 fn pairing_qr() -> Result<PairingInfo, String> {
     let st = status_response(ctx());
-    // 默认二维码 = 云端配对（本地/跨网络都能连，证书正规无警告）；
-    // 局域网直连 URL 作为次要选项展示给同网络用户
+    if !st.running {
+        // 服务未就绪（启动竞态）：报错让 UI 的 500ms 重试继续
+        return Err("服务未运行".into());
+    }
     // 云端二维码附带局域网候选与本地 token：手机页用于"赛马"探测直连（P3d）
     let extra = match (&st.lan_ip, st.https_port) {
         (Some(ip), Some(hp)) => match st.token {
@@ -395,6 +397,10 @@ pub fn run() {
     });
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .invoke_handler(tauri::generate_handler![
             get_status,
             start_server,
