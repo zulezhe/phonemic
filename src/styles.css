@@ -15,10 +15,10 @@ body {
 #app {
   max-width: 400px;
   margin: 0 auto;
-  padding: 20px 16px 28px;
+  padding: 12px 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 header .title {
   font-size: 20px;
@@ -33,10 +33,10 @@ header .subtitle {
   background: #171c26;
   border: 1px solid #232a38;
   border-radius: 12px;
-  padding: 14px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .row {
   display: flex;
@@ -76,12 +76,11 @@ header .subtitle {
 }
 .actions {
   display: flex;
-  gap: 10px;
-  margin-top: 2px;
+  gap: 8px;
 }
 button {
   flex: 1;
-  padding: 8px 0;
+  padding: 6px 0;
   border-radius: 8px;
   border: 1px solid #2a3242;
   background: #1a1f2b;
@@ -116,7 +115,7 @@ button:active {
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px 6px;
+  gap: 6px 6px;
 }
 .grid div {
   display: flex;
@@ -136,17 +135,17 @@ button:active {
 .qrbox {
   display: flex;
   justify-content: center;
-  padding: 8px;
+  padding: 6px;
   background: #fff;
   border-radius: 8px;
 }
 .qrbox svg {
-  width: 200px;
-  height: 200px;
+  width: 156px;
+  height: 156px;
 }
 .qr-skeleton {
-  width: 200px;
-  height: 200px;
+  width: 156px;
+  height: 156px;
   background: repeating-linear-gradient(45deg, #e3e7ee 0 12px, #f6f8fb 12px 24px);
   border-radius: 4px;
 }
@@ -264,4 +263,25 @@ button.mini {
   padding: 3px 10px;
   font-size: 12px;
   border-radius: 6px;
+}
+
+/* 无内容溢出时彻底隐藏滚动条 */
+html {
+  scrollbar-width: none;
+}
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+header .title {
+  font-size: 18px;
+}
+header .subtitle {
+  font-size: 12px;
+}
+.conn-check {
+  width: 72px;
+  height: 72px;
+  font-size: 40px;
+  line-height: 72px;
 }

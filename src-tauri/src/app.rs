@@ -29,6 +29,7 @@ pub struct AppCtx {
 }
 
 static CTX: OnceLock<AppCtx> = OnceLock::new();
+static TRAY_STATUS: OnceLock<tauri::menu::MenuItem<tauri::Wry>> = OnceLock::new();
 
 fn ctx() -> &'static AppCtx {
     CTX.get().expect("AppCtx 未初始化")
@@ -399,7 +400,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            None,
+            Some(vec!["--hidden"]), // 自启动时不弹窗口，常驻菜单栏
         ))
         .invoke_handler(tauri::generate_handler![
             get_status,
@@ -413,6 +414,51 @@ pub fn run() {
             install_driver
         ])
         .setup(|app| {
+            // ---- 菜单栏托盘 ----
+            use tauri::menu::{Menu, MenuItem};
+            use tauri::tray::TrayIconBuilder;
+
+            let mi_status = MenuItem::with_id(app, "pm_status", "状态：等待手机", false, None::<&str>)?;
+            let mi_show = MenuItem::with_id(app, "pm_show", "显示主窗口", true, None::<&str>)?;
+            let mi_restart = MenuItem::with_id(app, "pm_restart", "重启服务", true, None::<&str>)?;
+            let mi_quit = MenuItem::with_id(app, "pm_quit", "退出 PhoneMic", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&mi_status, &mi_show, &mi_restart, &mi_quit])?;
+
+            let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-template.png"))?;
+            TrayIconBuilder::with_id("main")
+                .icon(icon)
+                .icon_as_template(true)
+                .tooltip("PhoneMic")
+                .menu(&menu)
+                .show_menu_on_left_click(true)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "pm_show" => {
+                        if let Some(w) = tauri::Manager::get_webview_window(app, "main") {
+                            let _ = w.show();
+                            let _ = w.set_focus();
+                        }
+                    }
+                    "pm_restart" => {
+                        let handle = app.clone();
+                        tauri::async_runtime::spawn(async move {
+                            if let Err(e) = do_start().await {
+                                tracing::error!("托盘重启失败: {e:#}");
+                            }
+                        });
+                    }
+                    "pm_quit" => app.exit(0),
+                    _ => {}
+                })
+                .build(app)?;
+            let _ = TRAY_STATUS.set(mi_status);
+
+            // 自启动参数：静默启动（只在菜单栏）
+            if std::env::args().any(|a| a == "--hidden") {
+                if let Some(w) = tauri::Manager::get_webview_window(app, "main") {
+                    let _ = w.hide();
+                }
+            }
+
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 if let Err(e) = do_start().await {
@@ -420,11 +466,41 @@ pub fn run() {
                 }
                 loop {
                     tokio::time::sleep(Duration::from_millis(500)).await;
-                    let _ = handle.emit("stats", status_response(ctx()));
+                    let st = status_response(ctx());
+                    let _ = handle.emit("stats", st.clone());
+                    // 托盘状态项
+                    let text = if st.stats.connected {
+                        format!("状态：直播中{}", if st.stats.remote { "（远程）" } else { "" })
+                    } else if st.running {
+                        "状态：等待手机".to_string()
+                    } else {
+                        "状态：已停止".to_string()
+                    };
+                    if let Some(mi) = TRAY_STATUS.get() {
+                        if mi.text().unwrap_or_default() != text {
+                            let _ = mi.set_text(text);
+                        }
+                    }
                 }
             });
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("运行 Tauri 应用失败");
+        .on_window_event(|window, event| {
+            // 点关闭按钮不退出：收进菜单栏，托盘菜单里退出
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
+        .build(tauri::generate_context!())
+        .expect("构建 Tauri 应用失败")
+        .run(|app, event| {
+            // macOS Dock 图标点击 → 恢复窗口
+            if let tauri::RunEvent::Reopen { .. } = event {
+                if let Some(w) = tauri::Manager::get_webview_window(app, "main") {
+                    let _ = w.show();
+                    let _ = w.set_focus();
+                }
+            }
+        });
 }

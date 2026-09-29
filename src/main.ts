@@ -55,7 +55,7 @@ app.innerHTML = `
     <div class="label" id="qrLabel">手机扫码配对</div>
     <div id="qrBox" class="qrbox"><div class="qr-skeleton"></div></div>
     <div id="pairRows">
-      <div class="row"><span>局域网直连</span><span id="httpsUrl" class="mono small">–</span></div>
+      <div class="row"><span>同网络直连(更快)</span><span id="httpsUrl" class="mono small">–</span></div>
             <div class="fine" id="certHint"></div>
     </div>
     <div id="connInfo" class="conn-info hidden">
@@ -90,11 +90,6 @@ app.innerHTML = `
       <div><b id="vFrames">–</b><span>已收帧</span></div>
       <div><b id="vMode">–</b><span>编码</span></div>
     </div>
-  </section>
-
-  <section class="card hint">
-    装有 BlackHole 时会自动选为输出，电脑应用里选择 <b>BlackHole 2ch</b> 作为麦克风即可（QuickTime / 输入法 / 会议软件）。
-    此时本机扬声器不出声是正常的——声音进了虚拟麦克风。
   </section>
 `;
 
@@ -190,7 +185,7 @@ function renderPairingIdle() {
   $("#setupUrl").textContent = "云端（此二维码）";
   $("#setupUrl").title = pairQrUrl || "";
   $("#httpsUrl").textContent = pairHttpsUrl || "–";
-  $("#httpsUrl").title = "同一网络可直连（更快）；首次需“高级→继续访问”";
+  $("#httpsUrl").title = "同一网络下手机自动切换到直连（需信任过证书），延迟更低";
 }
 
 /** 已连接视图：绿色状态面板替代二维码 */
@@ -222,11 +217,11 @@ function renderBlackholeHint() {
   const has = devicesCache.some((d) => d.includes("BlackHole"));
   const btn = $<HTMLButtonElement>("#btnDriver");
   if (has) {
-    $("#blackholeHint").innerHTML = `✅ 已检测到 BlackHole —— 电脑应用选择 <b>BlackHole 2ch</b> 作为麦克风输入`;
+    $("#blackholeHint").innerHTML = `✅ 虚拟麦克风就绪 —— 电脑应用选择 <b>BlackHole 2ch</b> 即可`;
     btn.textContent = "修复驱动（重装 + 重启音频服务）";
     btn.classList.remove("hidden");
   } else {
-    $("#blackholeHint").innerHTML = `未检测到 BlackHole（虚拟麦克风）——当前仅从本机输出设备播放`;
+    $("#blackholeHint").innerHTML = `尚未安装虚拟麦克风，点击下方按钮一键安装`;
     btn.textContent = "一键安装虚拟麦克风驱动（需输一次密码）";
     btn.classList.remove("hidden");
   }
@@ -252,7 +247,7 @@ function render(st: StatusResponse) {
   }
 
   if (!st.setup_url) $("#setupUrl").textContent = "服务未运行";
-  $("#certHint").textContent = "云端扫码无证书警告；局域网直连首次需“高级→继续访问”";
+  $("#certHint").textContent = "扫码即连（任何网络）；同网络会自动切换直连";
 
   $("#vRtt").textContent = s.rtt_ms != null ? `${Math.round(s.rtt_ms)}ms` : "–";
   const total = s.frames_in + s.lost_frames;

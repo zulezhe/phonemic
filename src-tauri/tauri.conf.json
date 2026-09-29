@@ -14,8 +14,11 @@
       {
         "title": "PhoneMic",
         "width": 430,
-        "height": 700,
-        "resizable": true
+        "height": 660,
+        "minWidth": 400,
+        "minHeight": 560,
+        "resizable": true,
+        "titleBarStyle": "Inset"
       }
     ],
     "security": {
