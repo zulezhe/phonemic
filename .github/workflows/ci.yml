@@ -18,7 +18,9 @@ jobs:
       - run: npm --prefix phone run build   # rust-embed 需要 phone/dist 存在
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: "src-tauri" }
-      - run: cargo test --manifest-path src-tauri/Cargo.toml
+      # 在 src-tauri 内执行以应用 .cargo/config.toml（audiopus 的 cmake 兼容）；
+      # runner 偶发 DNS 瞬断，失败自动重试一次
+      - run: cd src-tauri && (cargo test || (sleep 15 && cargo test))
 
   web:
     name: 前端（桌面 UI + 手机页）
