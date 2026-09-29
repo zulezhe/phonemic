@@ -3,9 +3,10 @@
 //!   手机页面（本机调试与 chrome://flags 白名单场景）、/ws
 //! - HTTPS (0.0.0.0:https_port)：手机页面 + /ws（自签 CA，SAN 含局域网 IP）
 
-use crate::audio::{AudioFifo, OpusDecoder, STREAM_RATE};
+use crate::audio::AudioFifo;
 use crate::cert::{self, TlsMaterial};
-use crate::protocol::{parse_audio_frame, seq_ahead, ClientText, ServerText, FRAME_OPUS, FRAME_PCM_F32};
+use crate::protocol::ServerText;
+use crate::session::{run_session, SessionIo, TransportCmd, TransportMsg};
 use crate::state::Stats;
 use anyhow::{Context, Result};
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
@@ -21,7 +22,7 @@ use std::net::IpAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::watch;
+use tokio::sync::{mpsc, watch};
 
 #[derive(RustEmbed)]
 #[folder = "../phone/dist"]
@@ -273,127 +274,55 @@ async fn ws_handler(
     ws.on_upgrade(move |socket| session(socket, authed, sh))
 }
 
+/// LocalWs 传输适配器：axum 服务端 socket ↔ 通道桥接，协议逻辑在 session::run_session。
 async fn session(mut socket: WebSocket, authed: bool, sh: Shared) {
-    let welcome_err = |msg: &str| ServerText::Welcome {
-        ok: false,
-        mode: String::new(),
-        message: Some(msg.to_string()),
-    };
+    use futures_util::{SinkExt, StreamExt};
 
     if !authed {
-        let _ = socket
-            .send(Message::Text(serde_json::to_string(&welcome_err("token 无效，请从二维码或桌面界面进入")).unwrap()))
-            .await;
+        let err = ServerText::Welcome {
+            ok: false,
+            mode: String::new(),
+            message: Some("token 无效，请从二维码或桌面界面进入".to_string()),
+        };
+        let _ = socket.send(Message::Text(serde_json::to_string(&err).unwrap())).await;
         return;
     }
 
-    let hello = match tokio::time::timeout(Duration::from_secs(10), socket.recv()).await {
-        Ok(Some(Ok(Message::Text(t)))) => serde_json::from_str::<ClientText>(&t).ok(),
-        _ => None,
-    };
-    let (mode, sample_rate, channels) = match hello {
-        Some(ClientText::Hello { mode, sample_rate, channels }) => (mode, sample_rate, channels),
-        _ => {
-            let _ = socket
-                .send(Message::Text(serde_json::to_string(&welcome_err("期望 hello")).unwrap()))
-                .await;
-            return;
-        }
-    };
-    if sample_rate != STREAM_RATE || channels != 1 {
-        let _ = socket
-            .send(Message::Text(
-                serde_json::to_string(&welcome_err("只支持 48kHz 单声道")).unwrap(),
-            ))
-            .await;
-        return;
-    }
-    let use_opus = mode == "opus";
-    let reply_mode = if use_opus { "opus" } else { "pcm-f32" };
+    let (in_tx, inbound_rx) = mpsc::channel::<TransportMsg>(64);
+    let (outbound_tx, mut out_rx) = mpsc::channel::<TransportCmd>(64);
+    let (mut sink, mut stream) = socket.split();
 
-    sh.stats.reset_session();
-    sh.fifo.flush();
-    sh.stats.set_connected(reply_mode);
-    let mut decoder = match if use_opus { Some(OpusDecoder::new()) } else { None } {
-        Some(Ok(d)) => Some(d),
-        Some(Err(e)) => {
-            tracing::warn!("Opus 初始化失败: {e:#}");
-            let _ = socket
-                .send(Message::Text(serde_json::to_string(&welcome_err("opus 初始化失败")).unwrap()))
-                .await;
-            return;
-        }
-        None => None,
-    };
-
-    let welcome = ServerText::Welcome { ok: true, mode: reply_mode.to_string(), message: None };
-    if socket.send(Message::Text(serde_json::to_string(&welcome).unwrap())).await.is_err() {
-        sh.stats.set_disconnected();
-        return;
-    }
-
-    let mut last_seq: Option<u16> = None;
-    while let Some(Ok(msg)) = socket.recv().await {
-        match msg {
-            Message::Text(t) => match serde_json::from_str::<ClientText>(&t) {
-                Ok(ClientText::Ping { t }) => {
-                    let pong = ServerText::Pong { t };
-                    let _ = socket.send(Message::Text(serde_json::to_string(&pong).unwrap())).await;
-                }
-                Ok(ClientText::Report { rtt_ms }) => {
-                    if let Some(ms) = rtt_ms {
-                        sh.stats.set_rtt(ms);
-                    }
-                }
-                Ok(ClientText::Bye) | Ok(ClientText::Hello { .. }) | Err(_) => {}
-            },
-            Message::Binary(buf) => {
-                let Some((hdr, payload)) = parse_audio_frame(&buf) else { continue };
-                if let Some(last) = last_seq {
-                    let ahead = seq_ahead(last, hdr.seq);
-                    if ahead < -8 || ahead > 64 {
-                        sh.fifo.flush();
-                    } else if ahead > 1 {
-                        sh.stats.add_lost((ahead - 1) as u64);
-                    }
-                }
-                last_seq = Some(hdr.seq);
-
-                let samples: Vec<f32> = match hdr.kind {
-                    FRAME_PCM_F32 => payload
-                        .chunks_exact(4)
-                        .map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]]))
-                        .collect(),
-                    FRAME_OPUS => match decoder.as_mut().map(|d| d.decode(payload)) {
-                        Some(Ok(s)) => s,
-                        Some(Err(e)) => {
-                            tracing::debug!("opus 帧解码失败: {e:#}");
-                            continue;
-                        }
-                        None => continue,
-                    },
-                    _ => continue,
-                };
-                if samples.is_empty() {
-                    continue;
-                }
-                let sum: f32 = samples.iter().map(|s| s * s).sum();
-                sh.stats.set_level((sum / samples.len() as f32).sqrt());
-                sh.fifo.push(&samples);
-                sh.stats.incr_frames(1);
-                sh.stats.add_samples(samples.len() as u64);
-                sh.stats.add_bytes(buf.len() as u64);
-                sh.stats.touch_frame();
+    // socket → inbound
+    let reader = tokio::spawn(async move {
+        while let Some(Ok(msg)) = stream.next().await {
+            let m = match msg {
+                Message::Text(t) => TransportMsg::Text(t),
+                Message::Binary(b) => TransportMsg::Binary(b),
+                Message::Close(_) => break,
+                _ => continue,
+            };
+            if in_tx.send(m).await.is_err() {
+                break;
             }
-            Message::Close(_) => break,
-            _ => {}
         }
-    }
-    sh.stats.set_disconnected();
-    sh.fifo.flush();
-}
+    });
+    // outbound → socket
+    let writer = tokio::spawn(async move {
+        while let Some(cmd) = out_rx.recv().await {
+            let msg = match cmd {
+                TransportCmd::Text(t) => Message::Text(t),
+                TransportCmd::Binary(b) => Message::Binary(b),
+            };
+            if sink.send(msg).await.is_err() {
+                break;
+            }
+        }
+    });
 
-// ---------- 手机引导页（JS 从 location 推导链接，无需模板变量） ----------
+    run_session(SessionIo { inbound_rx, outbound_tx }, sh.stats.clone(), sh.fifo.clone()).await;
+    reader.abort();
+    writer.abort();
+}
 
 fn setup_page_html(https_port: Option<u16>) -> String {
     let port_js = match https_port {
