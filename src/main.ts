@@ -51,7 +51,7 @@ app.innerHTML = `
   </header>
 
   <section class="card" id="qrCard">
-    <div class="label" id="qrLabel">手机扫码配对（跨网络可用）</div>
+    <div class="label" id="qrLabel">手机扫码配对</div>
     <div id="qrBox" class="qrbox"><div class="qr-skeleton"></div></div>
     <div id="pairRows">
       <div class="row"><span>局域网直连</span><span id="httpsUrl" class="mono small">–</span></div>
@@ -116,6 +116,40 @@ function copyText(t: string) {
   navigator.clipboard?.writeText(t).catch(() => {});
 }
 
+const QR_ROTATE_SECONDS = 600; // 配对码 10 分钟自动轮换
+let qrRotateTimer: ReturnType<typeof setInterval> | null = null;
+
+function startQrCountdown() {
+  if (qrRotateTimer) clearInterval(qrRotateTimer);
+  let left = QR_ROTATE_SECONDS;
+  const tick = () => {
+    const m = Math.floor(left / 60);
+    const sec = left % 60;
+    $("#qrLabel").textContent = connectedUi ? "正在使用手机麦克风" : `手机扫码配对（${m}:${String(sec).padStart(2, "0")} 后更新）`;
+    if (left <= 0) {
+      clearInterval(qrRotateTimer!);
+      qrRotateTimer = null;
+      void rotateQr();
+    }
+    left -= 1;
+  };
+  tick();
+  qrRotateTimer = setInterval(tick, 1000);
+}
+
+async function rotateQr() {
+  if (!isTauri) return;
+  try {
+    await invoke<string>("reset_remote_pairing");
+    qrShown = false;
+    await refreshQr();
+    renderPairingIdle();
+    startQrCountdown();
+  } catch (e) {
+    console.error("轮换配对码失败", e);
+  }
+}
+
 async function refreshQr() {
   if (!isTauri || qrLoading) return;
   qrLoading = true;
@@ -127,6 +161,7 @@ async function refreshQr() {
     pairHttpsUrl = p.https_url ?? pairSetupUrl;
     qrShown = true;
     if (!connectedUi) renderPairingIdle();
+    startQrCountdown();
   } catch (e) {
     const msg = String(e);
     console.error("pairing_qr failed", e);
@@ -146,7 +181,7 @@ function renderPairingIdle() {
     return;
   }
   $("#qrBox").innerHTML = qrSvgCache;
-  $("#qrLabel").textContent = "手机扫码配对";
+  if (!qrRotateTimer) $("#qrLabel").textContent = "手机扫码配对";
   $("#pairRows").classList.remove("hidden");
   $("#connInfo").classList.add("hidden");
   $("#qrBox").classList.remove("connected");

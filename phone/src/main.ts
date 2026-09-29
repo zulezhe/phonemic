@@ -29,6 +29,7 @@ const state = {
   pingTimer: 0 as ReturnType<typeof setInterval>,
   // 远程（中继+E2EE）模式
   remote: null as { code: string; deskPub: string } | null,
+  mediaPromise: null as Promise<MediaStream> | null,
   aesKey: null as CryptoKey | null,
   e2eeSent: false,
   sendChain: Promise.resolve() as Promise<void>,
@@ -139,12 +140,16 @@ function sendEncryptedFrame(plain: Uint8Array) {
     if (ws.readyState !== WebSocket.OPEN) return;
     const nonce = crypto.getRandomValues(new Uint8Array(12));
     const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce as any }, state.aesKey!, plain.subarray(7) as any));
-    const f = plain.slice();
-    f[0] |= 0x80;
+    // 密文比明文长 28B（nonce+tag），必须新开缓冲区（旧写法 slice 后 set 越界且被静默吞掉）
+    const f = new Uint8Array(7 + 12 + ct.length);
+    f.set(plain.subarray(0, 7), 0);
+    f[0] = plain[0] | 0x80;
     f.set(nonce, 7);
-    f.set(ct, 7 + 12);
+    f.set(ct, 19);
     ws.send(f);
-  }).catch(() => {});
+  }).catch((e) => {
+    console.error("加密发送失败", e);
+  });
 }
 
 function token(): string {
@@ -226,6 +231,7 @@ function connect() {
     // 远程模式握手：配对就绪后先发 E2EE 公钥再发 hello
     if (msg.type === "roomState" && msg.state === "ready" && state.remote && !state.e2eeSent) {
       state.e2eeSent = true;
+      setPhase("connecting", "正在建立加密…");
       try {
         const myPub = await initRemoteCrypto(state.remote.deskPub, state.remote.code);
         ws.send(JSON.stringify({ type: "e2eeInit", pub: myPub }));
@@ -235,15 +241,16 @@ function connect() {
         return;
       }
       sendJson({ type: "hello", mode: state.mode, sampleRate: SAMPLE_RATE, channels: 1 });
+      setPhase("connecting", "正在启动麦克风…");
       return;
     }
     if (msg.type === "error") {
-      setPhase("error", msg.code === "EXPIRED" ? "二维码已过期，请在电脑端重新生成" : `中继错误: ${msg.code ?? ""}`);
+      setPhase("error", msg.code === "EXPIRED" ? "二维码已过期，请在电脑端重新生成" : "连接出错，请重试");
       state.running = false;
       return;
     }
     if (msg.type === "bye") {
-      setPhase("idle", state.remote ? "会话已结束，请刷新二维码" : "对方已断开");
+      setPhase("idle", state.remote ? "本次连接已结束，可重新扫码" : "对方已断开");
       state.running = false;
       return;
     }
@@ -275,7 +282,7 @@ function connect() {
       setPhase("reconnecting");
       setTimeout(() => state.running && connect(), delay);
     } else if (state.running && state.remote) {
-      setPhase("error", "远程连接断开，请在电脑端重新生成二维码");
+      setPhase("error", "连接已断开，请重新扫码");
       state.running = false;
     }
   };
@@ -290,7 +297,7 @@ async function startAudio() {
     return;
   }
   try {
-    state.stream = await navigator.mediaDevices.getUserMedia({
+    state.stream = await (state.mediaPromise ?? navigator.mediaDevices.getUserMedia({
       audio: {
         channelCount: 1,
         echoCancellation: true,
@@ -298,7 +305,8 @@ async function startAudio() {
         autoGainControl: true,
         sampleRate: SAMPLE_RATE,
       },
-    });
+    }));
+    state.mediaPromise = null;
   } catch (err: any) {
     const name = err?.name ?? "";
     let hint: string;
@@ -391,6 +399,7 @@ async function stopAudio() {
   state.rttMs = null;
   state.aesKey = null;
   state.e2eeSent = false;
+  state.mediaPromise = null;
   await state.wakeLock?.release?.().catch(() => {});
   state.wakeLock = null;
   setPhase("idle");
@@ -419,6 +428,21 @@ $mic.addEventListener("click", async () => {
     return;
   }
   state.running = true;
+  setPhase("connecting", "正在连接…");
+  // 并行准备：麦克风权限弹窗尽早出现，与网络连接/密钥协商互不等待
+  state.mediaPromise = navigator.mediaDevices
+    .getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        sampleRate: SAMPLE_RATE,
+      },
+    })
+    .catch((err) => {
+      throw err;
+    });
   state.mode = await pickMode();
   connect();
 });
@@ -427,12 +451,17 @@ $mic.addEventListener("click", async () => {
 state.remote = parseRemote();
 if (state.remote) {
   document.querySelector<HTMLElement>(".hint")!.textContent =
-    "跨网络模式 · 端到端加密 · 语音经 Cloudflare 中继转发";
+    "跨网络连接 · 语音已加密";
 }
 const autoStart =
   state.remote != null || new URLSearchParams(location.search).get("autostart") === "1";
 if (autoStart) {
   state.running = true;
+  state.mediaPromise = navigator.mediaDevices.getUserMedia({
+    audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: SAMPLE_RATE },
+  }).catch((e) => {
+    throw e;
+  });
   pickMode().then((m) => {
     state.mode = m;
     connect();
