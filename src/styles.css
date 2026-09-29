@@ -157,6 +157,73 @@ button:active {
   max-width: 200px;
   white-space: pre-wrap;
 }
+/* 已连接状态：绿色面板替代二维码 */
+.qrbox.connected {
+  background: transparent;
+  padding: 0;
+}
+.conn-check {
+  width: 84px;
+  height: 84px;
+  margin: 4px auto 0;
+  border-radius: 50%;
+  background: #3ddc97;
+  color: #0f1218;
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 84px;
+  text-align: center;
+  animation: pop 0.35s ease;
+}
+@keyframes pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  70% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.conn-title {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: #3ddc97;
+}
+.conn-sub {
+  margin-top: 2px;
+  text-align: center;
+  font-size: 12px;
+  color: #8b93a1;
+  font-variant-numeric: tabular-nums;
+}
+.conn-info {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.conn-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  background: #10141c;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #8b93a1;
+}
+.conn-row b {
+  color: #e8ecf1;
+  font-variant-numeric: tabular-nums;
+}
+button.ghost {
+  background: #1a1f2b;
+  border: 1px solid #2a3242;
+  width: 100%;
+  margin-bottom: 4px;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
 .small {
   font-size: 11px;
   max-width: 220px;

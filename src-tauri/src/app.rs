@@ -261,6 +261,70 @@ fn pairing_qr() -> Result<PairingInfo, String> {
 
 static LOG_GUARD: OnceLock<tracing_appender::non_blocking::WorkerGuard> = OnceLock::new();
 
+#[cfg(test)]
+mod tests {
+    use super::BH_PKG;
+
+    /// 内嵌的 BlackHole 安装包必须是有效的 XAR 格式（pkg 容器魔数 "xar!"）
+    #[test]
+    fn embedded_blackhole_pkg_valid() {
+        assert!(BH_PKG.len() > 90_000, "pkg 过小: {}", BH_PKG.len());
+        assert_eq!(&BH_PKG[..4], b"xar!", "pkg 魔数不符");
+    }
+}
+
+/// BlackHole 官方安装包（MIT，允许再分发，附 resources/BLACKHOLE-LICENSE）
+const BH_PKG: &[u8] = include_bytes!("../resources/BlackHole2ch-0.7.1.pkg");
+
+/// 一键安装/修复虚拟麦克风驱动：内嵌 pkg 落盘 → 管理员授权安装（弹一次密码）→
+/// 重启 coreaudiod 加载 → 重建输出引擎。返回结果文案。
+#[tauri::command]
+async fn install_driver() -> Result<String, String> {
+    let dir = data_dir();
+    std::fs::create_dir_all(&dir).map_err(|e| format!("数据目录不可写: {e}"))?;
+    let pkg = dir.join("BlackHole2ch-0.7.1.pkg");
+    std::fs::write(&pkg, BH_PKG).map_err(|e| format!("写出安装包失败: {e}"))?;
+
+    // installer 与 coreaudiod 重启合并进同一次授权；killall 失败不掩盖安装结果
+    let script = format!(
+        "do shell script \"installer -pkg '{}' -target / && (killall coreaudiod || true)\" with administrator privileges",
+        pkg.display()
+    );
+    let out = tokio::task::spawn_blocking(move || {
+        std::process::Command::new("osascript").arg("-e").arg(&script).output()
+    })
+    .await
+    .map_err(|e| format!("启动安装失败: {e}"))?
+    .map_err(|e| format!("启动安装失败: {e}"))?;
+
+    if !out.status.success() {
+        let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
+        tracing::warn!("驱动安装失败: {err}");
+        if err.contains("-128") || err.to_lowercase().contains("cancel") {
+            return Err("已取消：安装需要输入一次管理员密码".into());
+        }
+        return Err(err);
+    }
+    tracing::info!("驱动安装完成，等待音频服务重新加载");
+
+    // coreaudiod 需要一两秒完成驱动加载，随后重建输出引擎重新挂接设备
+    tokio::time::sleep(Duration::from_secs(2)).await;
+    {
+        let mut guard = ctx().engine.lock();
+        *guard = None; // drop 旧流
+    }
+    let chosen = list_output_devices().into_iter().find(|d| d.contains(PREFERRED_DEVICE));
+    match start_output(chosen.as_deref(), ctx().fifo.clone()) {
+        Ok(engine) => {
+            let name = engine.device_name.clone();
+            *ctx().engine.lock() = Some(engine);
+            tracing::info!("输出引擎已重建: {name}");
+            Ok(format!("驱动已安装，输出设备: {name}"))
+        }
+        Err(e) => Err(format!("驱动已安装，但重建输出失败: {e:#}")),
+    }
+}
+
 pub fn run() {
     // panic 也写入日志文件：GUI 应用的 stderr 不可见
     let default_hook = std::panic::take_hook();
@@ -302,7 +366,8 @@ pub fn run() {
             stop_server,
             output_devices,
             set_output_device,
-            pairing_qr
+            pairing_qr,
+            install_driver
         ])
         .setup(|app| {
             let handle = app.handle().clone();

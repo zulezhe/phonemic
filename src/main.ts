@@ -50,11 +50,17 @@ app.innerHTML = `
   </header>
 
   <section class="card" id="qrCard">
-    <div class="label">手机扫码配对</div>
+    <div class="label" id="qrLabel">手机扫码配对</div>
     <div id="qrBox" class="qrbox"><div class="qr-skeleton"></div></div>
-    <div class="row"><span>直连</span><span id="setupUrl" class="mono small">–</span></div>
-    <div class="row"><span>引导页(可选)</span><span id="httpsUrl" class="mono small">–</span></div>
-    <div class="fine" id="certHint"></div>
+    <div id="pairRows">
+      <div class="row"><span>直连</span><span id="setupUrl" class="mono small">–</span></div>
+      <div class="row"><span>引导页(可选)</span><span id="httpsUrl" class="mono small">–</span></div>
+      <div class="fine" id="certHint"></div>
+    </div>
+    <div id="connInfo" class="conn-info hidden">
+      <div class="conn-row"><span>编码</span><b id="cMode">–</b></div>
+      <div class="conn-row"><span>延迟</span><b id="cRtt">–</b></div>
+    </div>
   </section>
 
   <section class="card">
@@ -63,6 +69,7 @@ app.innerHTML = `
       <select id="deviceSelect"><option>加载中…</option></select>
     </div>
     <div class="fine" id="blackholeHint"></div>
+    <button id="btnDriver" class="ghost hidden">一键安装虚拟麦克风驱动</button>
     <div class="actions">
       <button id="btnRestart" class="primary">重启服务</button>
       <button id="btnStop">停止</button>
@@ -94,6 +101,10 @@ let devicesCache: string[] = [];
 let lastStatus: StatusResponse | null = null;
 let qrShown = false;
 let qrLoading = false;
+let qrSvgCache = "";
+let connectedUi = false;
+let pairQrUrl = "";
+let pairSetupUrl = "";
 
 function fmtNum(n: number): string {
   return n.toLocaleString("zh-CN");
@@ -108,25 +119,52 @@ async function refreshQr() {
   qrLoading = true;
   try {
     const p = await invoke<PairingInfo>("pairing_qr");
-    $("#qrBox").innerHTML = p.qr_svg;
-    $("#setupUrl").textContent = p.qr_url;
-    $("#setupUrl").title = "点击复制";
-    $("#httpsUrl").textContent = p.setup_url.replace(/#.*$/, "") + "/setup";
-    $("#httpsUrl").title = "一次性安装 CA 证书以永久消除浏览器的“不安全”提示";
-    $("#qrCard").classList.remove("hidden");
+    qrSvgCache = p.qr_svg;
+    pairQrUrl = p.qr_url;
+    pairSetupUrl = p.setup_url.replace(/#.*$/, "") + "/setup";
     qrShown = true;
+    if (!connectedUi) renderPairingIdle();
   } catch (e) {
     const msg = String(e);
     console.error("pairing_qr failed", e);
     // 只在还没成功显示过时占位；错误文案直接可见，便于定位（服务就绪后 500ms 轮询会自动重试）
-    if (!qrShown) {
+    if (!qrShown && !connectedUi) {
       $("#qrBox").innerHTML = `<div class="qr-err">二维码暂不可用：<br>${msg.slice(0, 90)}</div>`;
-      $("#setupUrl").textContent = msg.includes("服务未运行") ? "服务启动中…" : "–";
-      $("#httpsUrl").textContent = "–";
     }
   } finally {
     qrLoading = false;
   }
+}
+
+/** 未连接时的配对视图（二维码 + 链接行） */
+function renderPairingIdle() {
+  if (!qrSvgCache) {
+    $("#qrBox").innerHTML = '<div class="qr-skeleton"></div>';
+    return;
+  }
+  $("#qrBox").innerHTML = qrSvgCache;
+  $("#qrLabel").textContent = "手机扫码配对";
+  $("#pairRows").classList.remove("hidden");
+  $("#connInfo").classList.add("hidden");
+  $("#qrBox").classList.remove("connected");
+  $("#setupUrl").textContent = pairQrUrl || "–";
+  $("#setupUrl").title = "点击复制";
+  $("#httpsUrl").textContent = pairSetupUrl || "–";
+  $("#httpsUrl").title = "一次性安装 CA 证书以永久消除浏览器的“不安全”提示";
+}
+
+/** 已连接视图：绿色状态面板替代二维码 */
+function renderConnected(s: StatsSnapshot) {
+  $("#qrBox").classList.add("connected");
+  $("#qrBox").innerHTML = `
+    <div class="conn-check">✓</div>
+    <div class="conn-title">手机已连接</div>
+    <div class="conn-sub">${s.mode === "opus" ? "Opus" : "PCM"} · ${s.rtt_ms != null ? Math.round(s.rtt_ms) + "ms" : "–"}</div>`;
+  $("#qrLabel").textContent = "正在使用手机麦克风";
+  $("#pairRows").classList.add("hidden");
+  $("#cMode").textContent = s.mode === "opus" ? "Opus 48kHz" : "PCM 48kHz";
+  $("#cRtt").textContent = s.rtt_ms != null ? `${Math.round(s.rtt_ms)} ms` : "–";
+  $("#connInfo").classList.remove("hidden");
 }
 
 async function refreshDevices() {
@@ -142,9 +180,16 @@ async function refreshDevices() {
 
 function renderBlackholeHint() {
   const has = devicesCache.some((d) => d.includes("BlackHole"));
-  $("#blackholeHint").innerHTML = has
-    ? `✅ 已检测到 BlackHole —— 电脑应用选择 <b>BlackHole 2ch</b> 作为麦克风输入`
-    : `未检测到 BlackHole（虚拟麦克风）。安装：<code>brew install blackhole-2ch</code>，或仅作本机监听使用`;
+  const btn = $<HTMLButtonElement>("#btnDriver");
+  if (has) {
+    $("#blackholeHint").innerHTML = `✅ 已检测到 BlackHole —— 电脑应用选择 <b>BlackHole 2ch</b> 作为麦克风输入`;
+    btn.textContent = "修复驱动（重装 + 重启音频服务）";
+    btn.classList.remove("hidden");
+  } else {
+    $("#blackholeHint").innerHTML = `未检测到 BlackHole（虚拟麦克风）——当前仅从本机输出设备播放`;
+    btn.textContent = "一键安装虚拟麦克风驱动（需输一次密码）";
+    btn.classList.remove("hidden");
+  }
 }
 
 function render(st: StatusResponse) {
@@ -152,6 +197,17 @@ function render(st: StatusResponse) {
   const s = st.stats;
   $("#running").textContent = s.connected ? "直播中" : st.running ? "等待手机" : "已停止";
   $("#running").className = `pill ${s.connected ? "ok" : st.running ? "wait" : "off"}`;
+
+  // 配对视图 ↔ 已连接视图切换（只在状态变化时重绘，避免每 500ms 闪动）
+  if (s.connected && !connectedUi) {
+    connectedUi = true;
+    renderConnected(s);
+  } else if (!s.connected && connectedUi) {
+    connectedUi = false;
+    renderPairingIdle();
+  } else if (s.connected) {
+    $("#cRtt").textContent = s.rtt_ms != null ? `${Math.round(s.rtt_ms)} ms` : "–";
+  }
 
   if (!st.setup_url) $("#setupUrl").textContent = "服务未运行";
   $("#certHint").textContent = "首次打开如提示“不是私密连接”：高级 → 继续访问即可";
@@ -208,6 +264,19 @@ if (!isTauri) {
       console.error(err);
       alert(`切换输出设备失败: ${err}`);
     }
+  });
+  $("#btnDriver").addEventListener("click", async () => {
+    const btn = $<HTMLButtonElement>("#btnDriver");
+    btn.disabled = true;
+    btn.textContent = "安装中…（请在系统弹窗输入密码）";
+    try {
+      const msg = await invoke<string>("install_driver");
+      console.log("install_driver:", msg);
+    } catch (e) {
+      alert(`驱动安装未完成：${e}`);
+    }
+    btn.disabled = false;
+    await refreshDevices();
   });
   $("#setupUrl").addEventListener("click", (e) => {
     const t = (e.target as HTMLElement).textContent;
