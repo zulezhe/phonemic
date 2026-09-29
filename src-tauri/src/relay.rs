@@ -48,6 +48,7 @@ pub fn new_pair_code() -> String {
 /// 后自动重连），二维码内容因此保持稳定；显式 reset 才轮换。
 struct RemoteSlot {
     url: String,
+    extra: String,
     #[allow(dead_code)]
     code: String,
     kill: tokio::sync::watch::Sender<bool>,
@@ -55,12 +56,15 @@ struct RemoteSlot {
 
 static REMOTE_SLOT: OnceLock<Mutex<Option<RemoteSlot>>> = OnceLock::new();
 
-/// 确保常驻远程配对存在，返回配对 URL（幂等）
-pub fn ensure_remote_pairing(stats: Arc<Stats>, fifo: Arc<AudioFifo>) -> Result<String> {
+/// 确保常驻远程配对存在，返回配对 URL（幂等）。
+/// extra：附加进 hash 的参数（如局域网候选 &l= 与本地 token &t=，供赛马升级探测）。
+pub fn ensure_remote_pairing(stats: Arc<Stats>, fifo: Arc<AudioFifo>, extra: &str) -> Result<String> {
     let slot_lock = REMOTE_SLOT.get_or_init(|| Mutex::new(None));
     let mut g = slot_lock.lock();
-    if let Some(s) = &*g {
-        return Ok(s.url.clone());
+    if let Some(s) = g.as_mut() {
+        // 启动竞态兜底：首次调用可能发生在服务就绪前（extra 为空），这里用新 extra 覆盖
+        s.extra = extra.to_string();
+        return Ok(format!("{}{}", s.url, s.extra));
     }
     let keypair = load_or_create_keypair(&crate::app::data_dir())?;
     let code = new_pair_code();
@@ -89,7 +93,7 @@ pub fn ensure_remote_pairing(stats: Arc<Stats>, fifo: Arc<AudioFifo>) -> Result<
         tracing::info!("常驻配对任务已停止");
     });
 
-    *g = Some(RemoteSlot { url: url.clone(), code, kill: kill_tx });
+    *g = Some(RemoteSlot { url: url.clone(), extra: extra.to_string(), code, kill: kill_tx });
     Ok(url)
 }
 

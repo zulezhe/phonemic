@@ -243,7 +243,15 @@ fn pairing_qr() -> Result<PairingInfo, String> {
     let st = status_response(ctx());
     // 默认二维码 = 云端配对（本地/跨网络都能连，证书正规无警告）；
     // 局域网直连 URL 作为次要选项展示给同网络用户
-    let qr_url = relay::ensure_remote_pairing(ctx().stats.clone(), ctx().fifo.clone())
+    // 云端二维码附带局域网候选与本地 token：手机页用于"赛马"探测直连（P3d）
+    let extra = match (&st.lan_ip, st.https_port) {
+        (Some(ip), Some(hp)) => match st.token {
+            Some(ref t) => format!("&l={ip}:{hp}&t={t}"),
+            None => String::new(),
+        },
+        _ => String::new(),
+    };
+    let qr_url = relay::ensure_remote_pairing(ctx().stats.clone(), ctx().fifo.clone(), &extra)
         .map_err(|e| format!("{e:#}"))?;
     let setup_url = st.setup_url.clone().ok_or("服务未运行")?;
     let qr = qrcode::QrCode::new(qr_url.as_bytes()).map_err(|e| format!("{e}"))?;
@@ -281,7 +289,7 @@ struct RemotePairing {
 #[tauri::command]
 fn remote_pairing() -> Result<RemotePairing, String> {
     let state = ctx();
-    let url = relay::ensure_remote_pairing(state.stats.clone(), state.fifo.clone())
+    let url = relay::ensure_remote_pairing(state.stats.clone(), state.fifo.clone(), "")
         .map_err(|e| format!("{e:#}"))?;
     let qr = qrcode::QrCode::new(url.as_bytes()).map_err(|e| format!("{e}"))?;
     let qr_svg = qr

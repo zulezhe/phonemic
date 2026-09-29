@@ -141,8 +141,10 @@ pub struct Session { active: Box<dyn AudioTransport>, ... }  // 解码/jitter/�
 1. **LAN 候选**：二维码附桌面局域网候选列表（IP:9421 + `phonemic.local:9421`），逐个 `wss` 试连（800ms 超时，
    自签证书环境手机此前已装 CA 或点"继续访问"——探测失败静默放弃）
 2. **打洞（P5）**：经中继信令通道交换 `webrtcSignal{sdP/candidate}` → ICE → DataChannel
-3. 成功即发会话级 `pathUpgrade{target}` → 对端走新路径回 `pathUpgradeAck`（seq 续接）→ 切换
-4. 切换期间手机暂停发送 ≤200ms，桌面 jitter buffer 吸收；失败自动回退中继（中继连接在确认新路径前不关）
+3. 一期实现（已上线）：手机页 welcome 后探测局域网（hash 中的 `&l=ip:port&t=token`），
+   直连 welcome 成功即**整体切换发送通道**并静默关闭中继连接——切换有 100~300ms 音频间隙，
+   桌面侧零改动（旧会话自然结束、新会话自然开始）
+4. 二期（如间隙影响体验再做）：会话级 `pathUpgrade/pathUpgradeAck` 无缝迁移（seq 续接）
 
 ## 8. P5 预留（打洞）
 

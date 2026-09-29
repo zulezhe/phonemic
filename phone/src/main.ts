@@ -28,8 +28,9 @@ const state = {
   wakeLock: null as any,
   pingTimer: 0 as ReturnType<typeof setInterval>,
   // 远程（中继+E2EE）模式
-  remote: null as { code: string; deskPub: string } | null,
+  remote: null as { code: string; deskPub: string; lan?: string; ltoken?: string } | null,
   mediaPromise: null as Promise<MediaStream> | null,
+  upgrading: false,
   aesKey: null as CryptoKey | null,
   e2eeSent: false,
   sendChain: Promise.resolve() as Promise<void>,
@@ -96,10 +97,13 @@ if (!window.isSecureContext) {
 }
 
 // 远程模式：hash 形如 #p=<配对码>&k=<桌面公钥>
-function parseRemote(): { code: string; deskPub: string } | null {
+function parseRemote(): { code: string; deskPub: string; lan?: string; ltoken?: string } | null {
   const p = location.hash.match(/[?&#]p=([A-Za-z0-9_-]{16,64})/);
   const k = location.hash.match(/[?&#]k=([A-Za-z0-9_-]{40,200})/);
-  return p && k ? { code: p[1], deskPub: k[1] } : null;
+  if (!p || !k) return null;
+  const l = location.hash.match(/[?&#]l=([A-Za-z0-9_.:-]+)/);
+  const t = location.hash.match(/[?&#]t=([A-Za-z0-9]+)/);
+  return { code: p[1], deskPub: k[1], lan: l?.[1], ltoken: t?.[1] };
 }
 
 function b64uToBytes(s: string): Uint8Array<ArrayBuffer> {
@@ -203,23 +207,32 @@ function connect() {
   if (state.ws) {
     try {
       state.ws.close();
-    } catch {}
+    } catch {
+      /* ignore */
+    }
     state.ws = null;
   }
   setPhase(state.reconnectAttempts > 0 ? "reconnecting" : "connecting");
   let ws: WebSocket;
   try {
     ws = new WebSocket(wsUrl());
-  } catch (e) {
+  } catch {
     setPhase("error", "无法创建连接");
     return;
   }
   ws.binaryType = "arraybuffer";
   state.ws = ws;
-
   ws.onopen = () => {
-    sendJson({ type: "hello", mode: state.mode, sampleRate: SAMPLE_RATE, channels: 1 });
+    // 本地模式立即 hello；远程模式等 roomState ready 后再发（见 attachWsHandlers）
+    if (!state.remote) {
+      sendJson({ type: "hello", mode: state.mode, sampleRate: SAMPLE_RATE, channels: 1 });
+    }
   };
+  attachWsHandlers(ws);
+}
+
+/** WS 消息处理（云端连接与升级后的局域网直连共用） */
+function attachWsHandlers(ws: WebSocket) {
   ws.onmessage = async (ev) => {
     if (typeof ev.data !== "string") return;
     let msg: any;
@@ -228,7 +241,7 @@ function connect() {
     } catch {
       return;
     }
-    // 远程模式握手：配对就绪后先发 E2EE 公钥再发 hello
+    // 远程模式握手：配对就绪后先发加密公钥再发 hello
     if (msg.type === "roomState" && msg.state === "ready" && state.remote && !state.e2eeSent) {
       state.e2eeSent = true;
       setPhase("connecting", "正在建立加密…");
@@ -264,9 +277,13 @@ function connect() {
       state.mode = (msg.mode as AudioMode) || state.mode;
       state.t0 = performance.now();
       state.seq = 0;
-      void startAudio();
       clearInterval(state.pingTimer);
       state.pingTimer = setInterval(() => sendJson({ type: "ping", t: performance.now() }), 1000);
+      void startAudio();
+      // 赛马升级：云端会话建立后，后台探测局域网直连（更快的路径）
+      if (state.remote?.lan && state.remote?.ltoken && !state.upgrading) {
+        setTimeout(() => probeLanUpgrade(), 800);
+      }
     } else if (msg.type === "pong") {
       const rtt = performance.now() - msg.t;
       state.rttMs = state.rttMs == null ? rtt : state.rttMs * 0.7 + rtt * 0.3;
@@ -276,6 +293,7 @@ function connect() {
   };
   ws.onclose = () => {
     clearInterval(state.pingTimer);
+    if (state.upgrading) return; // 升级切换中关闭旧连接，忽略
     if (state.running && !state.remote) {
       state.reconnectAttempts += 1;
       const delay = Math.min(8000, 500 * 2 ** Math.min(4, state.reconnectAttempts - 1));
@@ -376,6 +394,57 @@ async function startAudio() {
   setPhase("live");
   renderStats();
   keepAwake();
+}
+
+/** 赛马升级：探测局域网直连（需手机已信任本机证书），成功则整体切换发送通道。
+ *  失败（证书未信任/跨网络被拦）则静默留在云端路径。 */
+function probeLanUpgrade() {
+  if (!state.remote?.lan || !state.remote?.ltoken || state.upgrading) return;
+  const lan = state.remote.lan!;
+  const token = state.remote.ltoken!;
+  let probe: WebSocket;
+  try {
+    probe = new WebSocket(`wss://${lan}/ws?token=${encodeURIComponent(token)}`);
+  } catch {
+    return;
+  }
+  state.upgrading = true;
+  const giveUp = setTimeout(() => {
+    state.upgrading = false;
+    try { probe.close(); } catch { /* ignore */ }
+  }, 2000);
+
+  probe.onopen = () => {
+    probe.send(JSON.stringify({ type: "hello", mode: state.mode, sampleRate: SAMPLE_RATE, channels: 1 }));
+  };
+  probe.onmessage = (ev) => {
+    if (typeof ev.data !== "string") return;
+    let m: any;
+    try { m = JSON.parse(ev.data); } catch { return; }
+    if (m.type !== "welcome" || !m.ok) return;
+    clearTimeout(giveUp);
+    // 切换：发送通道换到本地直连，静默关闭中继连接（不触发错误提示）
+    const old = state.ws;
+    state.ws = probe;
+    state.remote = null;
+    state.aesKey = null;
+    state.upgrading = false;
+    state.t0 = performance.now();
+    state.seq = 0;
+    clearInterval(state.pingTimer);
+    state.pingTimer = setInterval(() => sendJson({ type: "ping", t: performance.now() }), 1000);
+    attachWsHandlers(probe);
+    if (old) {
+      old.onclose = null;
+      old.onerror = null;
+      try { old.close(); } catch { /* ignore */ }
+    }
+    renderStats();
+  };
+  probe.onerror = () => {
+    clearTimeout(giveUp);
+    state.upgrading = false;
+  };
 }
 
 async function stopAudio() {
