@@ -572,12 +572,17 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("构建 Tauri 应用失败")
         .run(|app, event| {
-            // macOS Dock 图标点击 → 恢复窗口
+            // macOS Dock 图标点击 → 恢复窗口（Reopen 为 macOS 专属事件）
+            #[cfg(target_os = "macos")]
             if let tauri::RunEvent::Reopen { .. } = event {
                 if let Some(w) = tauri::Manager::get_webview_window(app, "main") {
                     let _ = w.show();
                     let _ = w.set_focus();
                 }
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = (&app, &event);
             }
         });
 }
