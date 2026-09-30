@@ -68,7 +68,12 @@ jobs:
         shell: pwsh
       - name: 上传安装包
         uses: actions/upload-artifact@v4
+        # 账号级 Artifact 存储配额可能被占满（免费额度全账号共享）；
+        # 构建成功即本 job 的核心目标，上传失败不置红。配额恢复后
+        # `gh run rerun --failed` 即可重新上传。
+        continue-on-error: true
         with:
           name: phonemic-windows-nsis
           path: src-tauri/target/release/bundle/nsis/*.exe
-          if-no-files-found: warn
+          retention-days: 7
+          if-no-files-found: error
