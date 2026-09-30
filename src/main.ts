@@ -46,42 +46,44 @@ interface PairingInfo {
 const app = document.querySelector("#app")!;
 
 app.innerHTML = `
-  <header>
-    <div class="title">🎙 PhoneMic</div>
-    <div class="subtitle">手机 → 电脑麦克风</div>
+  <header class="app-header">
+    <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15.5a4 4 0 0 0 4-4v-5a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4Z"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg></div>
+    <div><div class="title">PhoneMic</div><div class="subtitle">把手机变成电脑麦克风</div></div>
+    <span id="running" class="pill off">检查中</span>
   </header>
 
-  <section class="card" id="qrCard">
-    <div class="label" id="qrLabel">手机扫码配对</div>
-    <div id="qrBox" class="qrbox"><div class="qr-skeleton"></div></div>
+  <section class="card pairing-card" id="qrCard">
+    <div class="section-heading"><div><span class="step">1</span><span id="qrLabel">手机扫码配对</span></div><span class="secure"><span aria-hidden="true">◆</span> 端到端加密</span></div>
+    <div class="qr-stage"><div id="qrBox" class="qrbox"><div class="qr-skeleton"></div></div></div>
     <div id="pairRows">
-      <div class="row"><span>同网络直连(更快)</span><span id="httpsUrl" class="mono small">–</span></div>
-            <div class="fine" id="certHint"></div>
+      <button id="setupUrl" class="path-row" type="button" title="点击复制配对链接"><span class="path-icon">◎</span><span><b>任意网络</b><small>加密中继，扫码即连</small></span><span class="copy-label">复制</span></button>
+      <div class="path-row lan-row"><span class="path-icon">⌁</span><span><b>同一网络</b><small id="httpsUrl" class="mono">自动切换低延迟直连</small></span><span class="speed-label">更快</span></div>
+      <div class="fine" id="certHint"></div>
     </div>
     <div id="connInfo" class="conn-info hidden">
       <div class="conn-row"><span>编码</span><b id="cMode">–</b></div>
       <div class="conn-row"><span>延迟</span><b id="cRtt">–</b></div>
     </div>
-    <button id="btnRemote" class="ghost">重置配对码</button>
+    <button id="btnRemote" class="text-button">重新生成配对码</button>
   </section>
 
   <section class="card">
-    <div class="row"><span>服务状态</span><span id="running" class="pill">–</span></div>
-    <div class="row"><span>输出设备</span>
+    <div class="section-heading"><div><span class="step">2</span><span>设置输出</span></div></div>
+    <label class="field"><span>虚拟麦克风</span>
       <select id="deviceSelect"><option>加载中…</option></select>
-    </div>
-    <div class="row"><span>开机自动启动</span><button id="btnAutostart" class="mini">…</button></div>
+    </label>
     <div class="fine" id="blackholeHint"></div>
     <button id="btnDriver" class="ghost hidden">一键安装虚拟麦克风驱动</button>
+    <div class="setting-row"><span><b>开机自动启动</b><small>随时等待手机连接</small></span><button id="btnAutostart" class="mini">…</button></div>
     <div class="actions">
-      <button id="btnRestart" class="primary">重启服务</button>
-      <button id="btnStop">停止</button>
+      <button id="btnRestart" class="primary">重启连接服务</button>
+      <button id="btnStop" class="secondary">停止</button>
     </div>
   </section>
 
-  <section class="card">
-    <div class="label">输入电平</div>
-    <div class="meter"><div id="meterFill"></div></div>
+  <section class="card monitor-card">
+    <div class="monitor-head"><span>实时输入</span><span class="level-caption">MIC LEVEL</span></div>
+    <div class="meter" aria-label="麦克风输入电平"><div id="meterFill"></div><i></i><i></i><i></i></div>
     <div class="grid">
       <div><b id="vRtt">–</b><span>往返延迟</span></div>
       <div><b id="vLoss">–</b><span>丢帧</span></div>
@@ -91,6 +93,7 @@ app.innerHTML = `
       <div><b id="vMode">–</b><span>编码</span></div>
     </div>
   </section>
+  <div class="browser-hint hidden" role="status"></div>
 `;
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
@@ -182,9 +185,8 @@ function renderPairingIdle() {
   $("#pairRows").classList.remove("hidden");
   $("#connInfo").classList.add("hidden");
   $("#qrBox").classList.remove("connected");
-  $("#setupUrl").textContent = "云端（此二维码）";
   $("#setupUrl").title = pairQrUrl || "";
-  $("#httpsUrl").textContent = pairHttpsUrl || "–";
+  $("#httpsUrl").textContent = pairHttpsUrl ? "自动切换低延迟直连" : "直连地址准备中";
   $("#httpsUrl").title = "同一网络下手机自动切换到直连（需信任过证书），延迟更低";
 }
 
@@ -246,8 +248,7 @@ function render(st: StatusResponse) {
     $("#cRtt").textContent = s.rtt_ms != null ? `${Math.round(s.rtt_ms)} ms` : "–";
   }
 
-  if (!st.setup_url) $("#setupUrl").textContent = "服务未运行";
-  $("#certHint").textContent = "扫码即连（任何网络）；同网络会自动切换直连";
+  $("#certHint").textContent = st.running ? "配对码每 10 分钟自动更新，已连接设备不受影响" : "连接服务已停止，请先重新启动";
 
   $("#vRtt").textContent = s.rtt_ms != null ? `${Math.round(s.rtt_ms)}ms` : "–";
   const total = s.frames_in + s.lost_frames;
@@ -268,8 +269,8 @@ function render(st: StatusResponse) {
 }
 
 if (!isTauri) {
-  $("#qrCard").classList.add("hidden");
-  $<HTMLElement>(".hint").innerHTML =
+  $<HTMLElement>(".browser-hint").classList.remove("hidden");
+  $<HTMLElement>(".browser-hint").innerHTML =
     "当前页面在浏览器中打开——桌面 UI 需要 Tauri App 运行（<code>npm run tauri:dev</code>）。";
 } else {
   invoke<StatusResponse>("get_status").then(render).catch(console.error);
@@ -354,7 +355,9 @@ if (!isTauri) {
     await refreshDevices();
   });
   $("#setupUrl").addEventListener("click", (e) => {
-    const t = (e.target as HTMLElement).textContent;
-    if (t) copyText(t);
+    copyText(pairQrUrl);
+    const label = $<HTMLElement>(".copy-label");
+    label.textContent = "已复制";
+    setTimeout(() => (label.textContent = "复制"), 1200);
   });
 }
