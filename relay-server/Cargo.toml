@@ -1,0 +1,21 @@
+[package]
+name = "phonemic-relay"
+version = "0.1.0"
+edition = "2021"
+description = "PhoneMic self-hosted relay server (second implementation of the pairing protocol)"
+
+[dependencies]
+axum = { version = "0.8", features = ["ws"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net"] }
+tower-http = { version = "0.6", features = ["fs"] }
+rust-embed = "8"
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[profile.release]
+opt-level = "s"
+codegen-units = 1
+panic = "abort"
+strip = true
+lto = true

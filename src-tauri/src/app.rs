@@ -31,6 +31,15 @@ pub struct AppCtx {
 static CTX: OnceLock<AppCtx> = OnceLock::new();
 static TRAY_STATUS: OnceLock<tauri::menu::MenuItem<tauri::Wry>> = OnceLock::new();
 
+// ---- 桌面端 UI 语言（托盘/引导页文案）----
+fn ui_zh() -> bool {
+    sys_locale::get_locale().map(|l| l.to_lowercase().starts_with("zh")).unwrap_or(false)
+}
+fn tray_str(zh: &str, en: &str) -> String {
+    if ui_zh() { zh.to_string() } else { en.to_string() }
+}
+
+
 fn ctx() -> &'static AppCtx {
     CTX.get().expect("AppCtx 未初始化")
 }
@@ -418,10 +427,31 @@ pub fn run() {
             use tauri::menu::{Menu, MenuItem};
             use tauri::tray::TrayIconBuilder;
 
-            let mi_status = MenuItem::with_id(app, "pm_status", "状态：等待手机", false, None::<&str>)?;
-            let mi_show = MenuItem::with_id(app, "pm_show", "显示主窗口", true, None::<&str>)?;
-            let mi_restart = MenuItem::with_id(app, "pm_restart", "重启服务", true, None::<&str>)?;
-            let mi_quit = MenuItem::with_id(app, "pm_quit", "退出 PhoneMic", true, None::<&str>)?;
+            // 窗口落在已断开的显示器上时拉回主屏（切换显示器/拔线的常见场景）
+            if let Some(w) = tauri::Manager::get_webview_window(app, "main") {
+                let monitors = app.available_monitors().unwrap_or_default();
+                let on_screen = w
+                    .outer_position()
+                    .map(|p| {
+                        monitors.iter().any(|m| {
+                            let b = m.position();
+                            let sz = m.size();
+                            p.x >= b.x
+                                && p.x < b.x + sz.width as i32
+                                && p.y >= b.y
+                                && p.y < b.y + sz.height as i32
+                        })
+                    })
+                    .unwrap_or(true);
+                if !on_screen {
+                    let _ = w.center();
+                }
+            }
+
+            let mi_status = MenuItem::with_id(app, "pm_status", tray_str("状态：等待手机", "Status: waiting for phone"), false, None::<&str>)?;
+            let mi_show = MenuItem::with_id(app, "pm_show", tray_str("显示主窗口", "Show main window"), true, None::<&str>)?;
+            let mi_restart = MenuItem::with_id(app, "pm_restart", tray_str("重启服务", "Restart service"), true, None::<&str>)?;
+            let mi_quit = MenuItem::with_id(app, "pm_quit", tray_str("退出 PhoneMic", "Quit PhoneMic"), true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&mi_status, &mi_show, &mi_restart, &mi_quit])?;
 
             let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-template.png"))?;
@@ -469,12 +499,13 @@ pub fn run() {
                     let st = status_response(ctx());
                     let _ = handle.emit("stats", st.clone());
                     // 托盘状态项
+                    let live = tray_str("状态：直播中", "Status: LIVE");
                     let text = if st.stats.connected {
-                        format!("状态：直播中{}", if st.stats.remote { "（远程）" } else { "" })
+                        format!("{}{}", live, if st.stats.remote { tray_str("（远程）", " (relay)") } else { "".into() })
                     } else if st.running {
-                        "状态：等待手机".to_string()
+                        tray_str("状态：等待手机", "Status: waiting for phone")
                     } else {
-                        "状态：已停止".to_string()
+                        tray_str("状态：已停止", "Status: stopped")
                     };
                     if let Some(mi) = TRAY_STATUS.get() {
                         if mi.text().unwrap_or_default() != text {

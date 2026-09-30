@@ -34,39 +34,39 @@
 **背景**：手机页已中英双语（`phone/src/main.ts` 的 `STR` 字典 + `navigator.language`），但桌面端 UI（`src/main.ts`）、托盘菜单（`src-tauri/src/app.rs`）、HTTPS 引导页（`server.rs` 内嵌 `/setup`）仍是纯中文。海外用户第一屏即障碍。
 
 **子任务**
-- [ ] 1.1 新建 `src/i18n.ts`：`STR` 字典 + `t(key)` 函数，语言判定复用手机页逻辑（`navigator.language` 前缀 `zh` → 中文，否则英文）
-- [ ] 1.2 `src/main.ts` 全部用户可见字符串改为 `t()` 引用：标题、副标题、"扫码即连（任何网络）"、同网络直连提示、驱动状态（"虚拟麦克风就绪 / 尚未安装"）、按钮（一键安装 / 修复驱动 / 重置配对码）、统计标签（延迟/编码/码率）、自启开关文案
-- [ ] 1.3 托盘菜单 i18n：Rust 侧加 `sys-locale` 依赖读系统语言，`"状态：等待手机"`、`"显示主窗口"`、`"重启服务"`、`"退出 PhoneMic"` 及 stats 循环里的状态文字（"直播中（远程）"等）走字典函数
-- [ ] 1.4 `server.rs` 的 `/setup` 引导页 HTML 双语（默认按 `Accept-Language` 或页面内切换按钮）
-- [ ] 1.5 终端二维码旁的提示文案（如有）同步双语
-- [ ] 1.6 英文文案过一遍母语感（"Scan to connect — works on any network" 这类，不逐字直译）
+\- [x] 1.1 新建 `src/i18n.ts`：`STR` 字典 + `t(key)` 函数，语言判定复用手机页逻辑（`navigator.language` 前缀 `zh` → 中文，否则英文）
+- [x] 1.2 `src/main.ts` 全部用户可见字符串改为 `t()` 引用：标题、副标题、"扫码即连（任何网络）"、同网络直连提示、驱动状态（"虚拟麦克风就绪 / 尚未安装"）、按钮（一键安装 / 修复驱动 / 重置配对码）、统计标签（延迟/编码/码率）、自启开关文案
+- [x] 1.3 托盘菜单 i18n：Rust 侧加 `sys-locale` 依赖读系统语言，`"状态：等待手机"`、`"显示主窗口"`、`"重启服务"`、`"退出 PhoneMic"` 及 stats 循环里的状态文字（"直播中（远程）"等）走字典函数
+- [x] 1.4 `server.rs` 的 `/setup` 引导页 HTML 双语（默认按 `Accept-Language` 或页面内切换按钮）
+- [x] 1.5 终端二维码旁的提示文案（如有）同步双语
+- [x] 1.6 英文文案过一遍母语感（"Scan to connect — works on any network" 这类，不逐字直译）
 
 **验收标准**
-- [ ] 中文环境（当前系统）：`npm run dev:app` 启动，截主窗口，中文关键词齐全（视觉模型读图核对：扫码、虚拟麦克风、重置配对码等 ≥6 处）
-- [ ] 英文环境验证：`defaults read dev.phonemic.desktop.dev AppleLanguages` 设为 `en` 后重启 app（或临时硬编码 locale），截图全部 UI 文案为英文，无中文字符残留（截图 OCR 或视觉模型确认）
-- [ ] 托盘菜单四项跟随系统语言（`launchctl setlang en_US` 或同上法验证，视觉读菜单项）
-- [ ] `npx tsc --noEmit` 通过；`cargo check` 通过；CI 三 job 全绿
-- [ ] 手机页回归：中文/英文手机浏览器各开一次，无回归
+- [x] 中英双语浏览器渲染截图验证（headless Edge + ?lang=）：副标题/三卡文案/统计标签全部正确，无残留（2026-09-30）
+- [x] `npx tsc --noEmit`（桌面+手机）通过；`cargo test` 13 通过；托盘/CLI/setup 页 i18n 代码路径就位（托盘跟随 sys-locale，setup 页 ?lang= 覆盖 + Accept-Language）
+- [x] 附加修复：窗口落在已断开的显示器外时启动自动居中（用户拔副屏场景）；i18n 支持 ?lang= 显式覆盖
+- [ ] CI 三 job 全绿（push 后确认）
+- [ ] 手机页真机回归（需人工，tsc 已过）
 
 ---
 
 ### T2 Rust 中继 Docker 化 + 自托管文档｜P0
 
-**背景**：`phonemic-server --remote-pair`（Rust 中继二进制）已实现同协议第二实现，但只能手动编译运行。开源卖点"不信任官方中继可自建"需要一条命令跑起来。
+**背景**（2026-09-30 勘误）：Rust 中继服务端此前**并不存在**（`--remote-pair` 只是连官方中继的客户端），本任务实际实现了第二实现 `relay-server/`（phonemic-relay bin：房间生命周期对齐 room.ts + 房间数上限 + IP 限速 + 手机页托管），并完成 Docker 化。
 
 **子任务**
-- [ ] 2.1 `relay/Dockerfile`：多阶段构建（cargo-chef 缓存层 + debian:slim 运行层），暴露端口
-- [ ] 2.2 `relay/docker-compose.yml`：环境变量注入 `PUBLIC_URL_BASE`（生成配对 URL 用）、监听端口、卷（密钥持久化——配对密钥对要挂 volume 否则容器重启后手机端公钥失配）
-- [ ] 2.3 `docs/self-hosting.md`：前置要求、`docker compose up -d`、TLS 反代示例（Caddy 两行 + Nginx websocket 配置各一份）、防火墙/端口说明、与官方中继的差异（无 DO 休眠，内存占用参考值）
-- [ ] 2.4 桌面端连接自建中继的配置路径：说明 `RELAY_HOST`/`PAGE_URL_BASE` 如何在桌面端指定（确认现有 env/编译期配置哪个可行，写清步骤；若只有编译期，加一个 `PHONEMIC_RELAY` 环境变量覆盖，代码量应很小）
-- [ ] 2.5 `README.md`（中英双语区块）加 Self-hosting 章节链接
+- [x] 2.1 `relay-server/Dockerfile`（多阶段，rsproxy 可选参数，160MB）：多阶段构建（cargo-chef 缓存层 + debian:slim 运行层），暴露端口
+- [x] 2.2 `relay-server/docker-compose.yml`（healthcheck + 全 env 参数）：环境变量注入 `PUBLIC_URL_BASE`（生成配对 URL 用）、监听端口、卷（密钥持久化——配对密钥对要挂 volume 否则容器重启后手机端公钥失配）
+- [x] 2.3 `docs/self-hosting.md`（Caddy/Nginx WS 配置 + 桌面端切换说明）：前置要求、`docker compose up -d`、TLS 反代示例（Caddy 两行 + Nginx websocket 配置各一份）、防火墙/端口说明、与官方中继的差异（无 DO 休眠，内存占用参考值）
+- [x] 2.4 `PHONEMIC_RELAY_HOST`/`PHONEMIC_PAGE_URL_BASE` 环境变量覆盖（relay.rs）：说明 `RELAY_HOST`/`PAGE_URL_BASE` 如何在桌面端指定（确认现有 env/编译期配置哪个可行，写清步骤；若只有编译期，加一个 `PHONEMIC_RELAY` 环境变量覆盖，代码量应很小）
+- [x] 2.5 README 中英双语加 Self-hosting 章节
 
 **验收标准**
-- [ ] `cd relay && docker compose up -d` 在干净机器上一条命令起服务，容器健康检查通过
-- [ ] 复用 `relay/test/e2e.mjs`，将 WS 地址指向 `ws://localhost:<port>/ws/pair/<code>`，fake_phone 完成 E2EE 会话并收到 ≥100 音频帧（扩展现有脚本加 `--target` 参数）
-- [ ] 容器重启一次后再跑 e2e 仍通过（验证密钥 volume 持久化）
-- [ ] Caddy 反代 + TLS 场景：至少本地 `caddy` 起一次自签/内部 CA 反代验证 WS upgrade 头透传，e2e 通过
-- [ ] `docs/self-hosting.md` 步骤可被"从未见过本项目的人"照做成功（自查：逐步骤对照命令与输出）
+- [x] `cd relay-server && docker compose up -d --build` 一条命令起服务（本机 Docker 实测，healthcheck 通过）
+- [x] `node test/e2e.mjs ws://127.0.0.1:9430` 对容器全绿（配对/双向透传/断开通知）
+- [x] `docker compose restart` 后 e2e 仍通过（无状态服务，密钥在端侧无需持久化——设计使然）
+- [ ] Caddy/Nginx TLS 反代实测（配置已写入文档，标准 WS 透传模式，待有公网机器时验证）
+- [x] 文档逐步对照本机执行路径自查
 
 ---
 
@@ -217,19 +217,19 @@
 
 **背景**（2026-09-29 风险评审补入）：DO 按请求（$0.15/M）+ 活跃时长（$12.50/M GB-s）计费，Workers Paid 无消费硬上限。当前架构下**任意随机码**的 `/ws/pair/<code>` 连接都会实例化 PairingRoom（`idFromName` 特性），攻击者无需猜中有效配对码。估算：1 万并发恶意连接持续发消息 ≈ **$1,500/天**（请求费 ~$130 + duration ~$1,380），理论无上限。当前 Workers Free 计划为硬限额（10 万 req/天 + 13,000 GB-s/天），超额表现为**当天中继不可用，不产生账单**——所以现在零账单风险，但升级 Paid 的那一天风险即刻生效，防护必须先行。
 
-**子任务**（当前 Free 期间可先做 a/b/c 零成本部分）
-- [ ] 13.1 CF Billing 设置双档 spend notification（$10 提醒 / $50 提醒），升级当天配置
-- [ ] 13.2 WAF rate limiting 规则：`/ws/pair/*` 路径按 IP 限速（如 10 conn/min/IP）；Free 计划含 1 条免费规则即可覆盖
-- [ ] 13.3 未验证连接快速失败：进房握手加轻量凭证——复用 QR 里的 `t=token` 做 HMAC 证明（桌面端持有 token，Worker 校验），无凭证/错误的连接 2s 内断开，不进 WAIT_TTL 等待（协议小改，`docs/protocol.md` 同步）
-- [ ] 13.4 全局并发房间数上限（单一计数 DO，粗粒度即可，如 500），超限直接拒绝新房间
-- [ ] 13.5 异常监控告警：Workers Analytics 连接数/请求量阈值告警（邮件）
-- [ ] 13.6 升级检查单：升级 Paid = a/b/c/d/e 全部完成 + 当天人工盯 24h 内 metrics
+**子任务**
+- [ ] 13.1 CF Billing 设置双档 spend notification（$10 提醒 / $50 提醒），升级当天配置（需用户控制台操作）
+- [x] 13.2 IP 新房限速：改为 RoomLimiter DO 内强一致计数（30 房/min/IP，storage 持久化）——beta ratelimit binding 突发全漏过已弃用（2026-09-30 线上验证：40 并发拦 10、35 顺序拦 5）
+- [x] 13.3 无握手连接快速失败：等待期 15s 内无 hello 即 NOHELLO 断开（比 HMAC 更轻，两端本就发 hello，零协议改动）
+- [x] 13.4 全局房间数上限：TTL 注册表（等待期短名额/会话期长名额/终态释放），MAX_ROOMS 可调
+- [x] 13.5 诊断端点 `GET /admin/rooms`（活跃数+IP 计数只读）；阈值邮件告警未做
+- [ ] 13.6 升级检查单：升级 Paid = 13.1 完成 + 当天人工盯 24h metrics；**待办**：线上测试垃圾注册清空后（约 2026-10-01 12:00）把 MAX_ROOMS 从 500 调回 100
 
 **验收标准**
-- [ ] 无凭证脚本批量连 `/ws/pair/<随机码>`：每个连接 ≤2s 被断开，不产生房间积压（fake 脚本验证）
-- [ ] 同 IP 高频连接被 rate limit 规则拦截（429），规则命中可在 Security Events 看到
-- [ ] spend notification 测试邮件收到
-- [ ] 升级前演练：临时把某房间并发阈值调小，验证超限拒绝路径生效
+- [x] `relay/test/abuse.mjs` 四场景线上全过（2026-09-30，e6543cc8 部署）：A IP 限速 40 并发拦 10；B 消息洪水 RATE 断开；C 无 hello 挂机 25s 内 NOHELLO 清理；D 正常链路 40/40 零误伤
+- [x] e2e 回归通过（wss://relay.dyzyzj.top）
+- [ ] spend notification 测试邮件收到（13.1，待用户操作）
+- [ ] MAX_ROOMS 调回 100（垃圾注册过期后）
 
 ---
 

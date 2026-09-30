@@ -19,7 +19,7 @@ const STR = {
     errClosed: "连接已断开，请重新扫码",
     stageCrypto: "正在建立加密…",
     stageMic: "正在启动麦克风…",
-    silent2: "静音", db: "dB", delay: "延迟",
+    silent2: "静音", db: "dB", delay: "延迟", start: "开始传输", stop: "点击停止", ready: "轻触按钮开始传输",
   },
   en: {
     idle: "Not connected", connecting: "Connecting…", live: "LIVE", reconnecting: "Reconnecting…", error: "Error",
@@ -38,7 +38,7 @@ const STR = {
     errClosed: "Disconnected — scan again",
     stageCrypto: "Establishing encryption…",
     stageMic: "Starting microphone…",
-    silent2: "silent", db: "dB", delay: "Latency",
+    silent2: "silent", db: "dB", delay: "Latency", start: "Start streaming", stop: "Tap to stop", ready: "Tap the button to begin",
   },
 } as const;
 type Lang = Record<string, string>;
@@ -83,14 +83,12 @@ const state = {
 // ---------- DOM ----------
 const app = document.querySelector("#app")!;
 app.innerHTML = `
-  <header><div class="logo">🎙 PhoneMic</div><div class="sub" id="phase">未连接</div></header>
+  <header><div class="brand"><span class="brand-icon"><svg viewBox="0 0 24 24"><path d="M12 15.5a4 4 0 0 0 4-4v-5a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4Z"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg></span><span class="logo">PhoneMic</span></div><div class="sub" id="phase">未连接</div></header>
   <main>
-    <button id="mic" aria-label="开始/停止">
-      <svg viewBox="0 0 24 24" width="44" height="44"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
-    </button>
-    <div class="meter"><div id="meterFill"></div></div>
-    <div class="stats" id="stats">点击开始，把手机对准自己说话</div>
-    <div class="hint" id="hint">传输中请保持屏幕常亮与电脑同一 Wi-Fi</div>
+    <div class="mic-zone"><div class="pulse-ring ring-one"></div><div class="pulse-ring ring-two"></div><button id="mic" aria-label="开始传输" aria-pressed="false"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg></button></div>
+    <div class="action-copy"><strong id="actionLabel">轻触按钮开始传输</strong><span id="actionHint">手机将成为电脑的麦克风</span></div>
+    <section class="signal-card" aria-label="传输状态"><div class="signal-head"><span>输入电平</span><span id="dbValue">静音</span></div><div class="meter"><div id="meterFill"></div><i></i><i></i><i></i></div><div class="stats" id="stats">点击开始，把手机对准自己说话</div></section>
+    <div class="hint" id="hint"><span class="lock">◆</span> 传输中请保持屏幕常亮与电脑同一 Wi-Fi</div>
   </main>
 `;
 const $phase = document.querySelector<HTMLElement>("#phase")!;
@@ -98,6 +96,9 @@ const $mic = document.querySelector<HTMLButtonElement>("#mic")!;
 const $fill = document.querySelector<HTMLElement>("#meterFill")!;
 const $stats = document.querySelector<HTMLElement>("#stats")!;
 const $micSvg = $mic.querySelector("svg")!;
+const $actionLabel = document.querySelector<HTMLElement>("#actionLabel")!;
+const $actionHint = document.querySelector<HTMLElement>("#actionHint")!;
+const $dbValue = document.querySelector<HTMLElement>("#dbValue")!;
 
 function setPhase(p: Phase, text?: string) {
   state.phase = p;
@@ -110,6 +111,10 @@ function setPhase(p: Phase, text?: string) {
   };
   $phase.textContent = text ?? labels[p];
   $mic.classList.toggle("on", p === "live");
+  $mic.setAttribute("aria-pressed", String(p === "live"));
+  $mic.setAttribute("aria-label", p === "live" ? L.stop : L.start);
+  $actionLabel.textContent = p === "live" ? L.stop : p === "connecting" || p === "reconnecting" ? labels[p] : L.ready;
+  $actionHint.textContent = p === "live" ? L.keepHint : L.tapToStart;
   document.body.classList.toggle("live", p === "live");
   if (p !== "live") {
     state.level = 0;
@@ -120,6 +125,7 @@ function setPhase(p: Phase, text?: string) {
 function renderStats() {
   const rtt = state.rttMs != null ? `${state.rttMs.toFixed(0)} ms` : "–";
   const db = state.level > 0 ? `${(20 * Math.log10(state.level)).toFixed(0)} ${L.db}` : L.silent2;
+  $dbValue.textContent = db;
   const enc = state.mode === "opus" ? "Opus" : "PCM";
   $stats.textContent = state.remote
     ? `${L.encLive} · ${L.delay} ${rtt} · ${db} · ${enc}`

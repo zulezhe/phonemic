@@ -2,6 +2,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
+import { t } from "./i18n";
 import "./styles.css";
 
 interface StatsSnapshot {
@@ -46,51 +47,54 @@ interface PairingInfo {
 const app = document.querySelector("#app")!;
 
 app.innerHTML = `
-  <header>
-    <div class="title">🎙 PhoneMic</div>
-    <div class="subtitle">手机 → 电脑麦克风</div>
+  <header class="app-header">
+    <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15.5a4 4 0 0 0 4-4v-5a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4Z"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg></div>
+    <div><div class="title">PhoneMic</div><div class="subtitle">${t("subtitle")}</div></div>
+    <span id="running" class="pill off">${t("checking")}</span>
   </header>
 
-  <section class="card" id="qrCard">
-    <div class="label" id="qrLabel">手机扫码配对</div>
-    <div id="qrBox" class="qrbox"><div class="qr-skeleton"></div></div>
+  <section class="card pairing-card" id="qrCard">
+    <div class="section-heading"><div><span class="step">1</span><span id="qrLabel">${t("stepPair")}</span></div><span class="secure"><span aria-hidden="true">◆</span> ${t("e2ee")}</span></div>
+    <div class="qr-stage"><div id="qrBox" class="qrbox"><div class="qr-skeleton"></div></div></div>
     <div id="pairRows">
-      <div class="row"><span>同网络直连(更快)</span><span id="httpsUrl" class="mono small">–</span></div>
-            <div class="fine" id="certHint"></div>
+      <button id="setupUrl" class="path-row" type="button" title="${t("copyLinkTitle")}"><span class="path-icon">◎</span><span><b>${t("anyNetwork")}</b><small>${t("anyNetworkSub")}</small></span><span class="copy-label">${t("copy")}</span></button>
+      <div class="path-row lan-row"><span class="path-icon">⌁</span><span><b>${t("sameNetwork")}</b><small id="httpsUrl" class="mono">${t("lanSub")}</small></span><span class="speed-label">${t("faster")}</span></div>
+      <div class="fine" id="certHint"></div>
     </div>
     <div id="connInfo" class="conn-info hidden">
-      <div class="conn-row"><span>编码</span><b id="cMode">–</b></div>
-      <div class="conn-row"><span>延迟</span><b id="cRtt">–</b></div>
+      <div class="conn-row"><span>${t("codec")}</span><b id="cMode">–</b></div>
+      <div class="conn-row"><span>${t("latency")}</span><b id="cRtt">–</b></div>
     </div>
-    <button id="btnRemote" class="ghost">重置配对码</button>
+    <button id="btnRemote" class="text-button">${t("regenCode")}</button>
   </section>
 
   <section class="card">
-    <div class="row"><span>服务状态</span><span id="running" class="pill">–</span></div>
-    <div class="row"><span>输出设备</span>
-      <select id="deviceSelect"><option>加载中…</option></select>
-    </div>
-    <div class="row"><span>开机自动启动</span><button id="btnAutostart" class="mini">…</button></div>
+    <div class="section-heading"><div><span class="step">2</span><span>${t("stepOutput")}</span></div></div>
+    <label class="field"><span>${t("virtualMic")}</span>
+      <select id="deviceSelect"><option>${t("loading")}</option></select>
+    </label>
     <div class="fine" id="blackholeHint"></div>
-    <button id="btnDriver" class="ghost hidden">一键安装虚拟麦克风驱动</button>
+    <button id="btnDriver" class="ghost hidden">${t("bhInstallBtn")}</button>
+    <div class="setting-row"><span><b>${t("autostartTitle")}</b><small>${t("autostartSub")}</small></span><button id="btnAutostart" class="mini">…</button></div>
     <div class="actions">
-      <button id="btnRestart" class="primary">重启服务</button>
-      <button id="btnStop">停止</button>
+      <button id="btnRestart" class="primary">${t("restartSvc")}</button>
+      <button id="btnStop" class="secondary">${t("stop")}</button>
     </div>
   </section>
 
-  <section class="card">
-    <div class="label">输入电平</div>
-    <div class="meter"><div id="meterFill"></div></div>
+  <section class="card monitor-card">
+    <div class="monitor-head"><span>${t("liveInput")}</span><span class="level-caption">MIC LEVEL</span></div>
+    <div class="meter" aria-label="${t("meterAria")}"><div id="meterFill"></div><i></i><i></i><i></i></div>
     <div class="grid">
-      <div><b id="vRtt">–</b><span>往返延迟</span></div>
-      <div><b id="vLoss">–</b><span>丢帧</span></div>
-      <div><b id="vUnderrun">–</b><span>下溢</span></div>
-      <div><b id="vBuffer">–</b><span>缓冲</span></div>
-      <div><b id="vFrames">–</b><span>已收帧</span></div>
-      <div><b id="vMode">–</b><span>编码</span></div>
+      <div><b id="vRtt">–</b><span>${t("rttLabel")}</span></div>
+      <div><b id="vLoss">–</b><span>${t("lossLabel")}</span></div>
+      <div><b id="vUnderrun">–</b><span>${t("underrunLabel")}</span></div>
+      <div><b id="vBuffer">–</b><span>${t("bufferLabel")}</span></div>
+      <div><b id="vFrames">–</b><span>${t("framesLabel")}</span></div>
+      <div><b id="vMode">–</b><span>${t("modeLabel")}</span></div>
     </div>
   </section>
+  <div class="browser-hint hidden" role="status"></div>
 `;
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
@@ -106,7 +110,7 @@ let pairSetupUrl = "";
 let pairHttpsUrl = "";
 
 function fmtNum(n: number): string {
-  return n.toLocaleString("zh-CN");
+  return n.toLocaleString();
 }
 
 function copyText(t: string) {
@@ -122,7 +126,8 @@ function startQrCountdown() {
   const tick = () => {
     const m = Math.floor(left / 60);
     const sec = left % 60;
-    $("#qrLabel").textContent = connectedUi ? "正在使用手机麦克风" : `手机扫码配对（${m}:${String(sec).padStart(2, "0")} 后更新）`;
+    const time = `${m}:${String(sec).padStart(2, "0")}`;
+    $("#qrLabel").textContent = connectedUi ? t("usingMic") : t("qrCountdown", { time });
     if (left <= 0) {
       clearInterval(qrRotateTimer!);
       qrRotateTimer = null;
@@ -143,7 +148,7 @@ async function rotateQr() {
     renderPairingIdle();
     startQrCountdown();
   } catch (e) {
-    console.error("轮换配对码失败", e);
+    console.error("rotate pairing failed", e);
   }
 }
 
@@ -164,7 +169,7 @@ async function refreshQr() {
     console.error("pairing_qr failed", e);
     // 只在还没成功显示过时占位；错误文案直接可见，便于定位（服务就绪后 500ms 轮询会自动重试）
     if (!qrShown && !connectedUi) {
-      $("#qrBox").innerHTML = `<div class="qr-err">二维码暂不可用：<br>${msg.slice(0, 90)}</div>`;
+      $("#qrBox").innerHTML = `<div class="qr-err">${t("qrUnavailable", { msg: msg.slice(0, 90) })}</div>`;
     }
   } finally {
     qrLoading = false;
@@ -178,14 +183,13 @@ function renderPairingIdle() {
     return;
   }
   $("#qrBox").innerHTML = qrSvgCache;
-  if (!qrRotateTimer) $("#qrLabel").textContent = "手机扫码配对";
+  if (!qrRotateTimer) $("#qrLabel").textContent = t("stepPair");
   $("#pairRows").classList.remove("hidden");
   $("#connInfo").classList.add("hidden");
   $("#qrBox").classList.remove("connected");
-  $("#setupUrl").textContent = "云端（此二维码）";
   $("#setupUrl").title = pairQrUrl || "";
-  $("#httpsUrl").textContent = pairHttpsUrl || "–";
-  $("#httpsUrl").title = "同一网络下手机自动切换到直连（需信任过证书），延迟更低";
+  $("#httpsUrl").textContent = pairHttpsUrl ? t("lanSub") : t("lanPending");
+  $("#httpsUrl").title = t("lanTitle");
 }
 
 /** 已连接视图：绿色状态面板替代二维码 */
@@ -193,9 +197,9 @@ function renderConnected(s: StatsSnapshot) {
   $("#qrBox").classList.add("connected");
   $("#qrBox").innerHTML = `
     <div class="conn-check">✓</div>
-    <div class="conn-title">手机已连接</div>
+    <div class="conn-title">${t("connTitle")}</div>
     <div class="conn-sub">${s.mode === "opus" ? "Opus" : "PCM"} · ${s.rtt_ms != null ? Math.round(s.rtt_ms) + "ms" : "–"}</div>`;
-  $("#qrLabel").textContent = "正在使用手机麦克风";
+  $("#qrLabel").textContent = t("usingMic");
   $("#pairRows").classList.add("hidden");
   $("#cMode").textContent = s.mode === "opus" ? "Opus 48kHz" : "PCM 48kHz";
   $("#cRtt").textContent = s.rtt_ms != null ? `${Math.round(s.rtt_ms)} ms` : "–";
@@ -207,8 +211,9 @@ async function refreshDevices() {
   devicesCache = await invoke<string[]>("output_devices");
   const sel = $<HTMLSelectElement>("#deviceSelect");
   const current = lastStatus?.output_device;
+  const def = lastStatus?.has_preferred_device ? t("sysDefaultBh") : t("sysDefault");
   sel.innerHTML =
-    `<option value="">系统默认${lastStatus?.has_preferred_device ? "（含 BlackHole 自动选择）" : ""}</option>` +
+    `<option value="">${def}</option>` +
     devicesCache.map((d) => `<option ${d === current ? "selected" : ""}>${d}</option>`).join("");
   renderBlackholeHint();
 }
@@ -217,12 +222,12 @@ function renderBlackholeHint() {
   const has = devicesCache.some((d) => d.includes("BlackHole"));
   const btn = $<HTMLButtonElement>("#btnDriver");
   if (has) {
-    $("#blackholeHint").innerHTML = `✅ 虚拟麦克风就绪 —— 电脑应用选择 <b>BlackHole 2ch</b> 即可`;
-    btn.textContent = "修复驱动（重装 + 重启音频服务）";
+    $("#blackholeHint").innerHTML = t("bhReady");
+    btn.textContent = t("bhFixBtn");
     btn.classList.remove("hidden");
   } else {
-    $("#blackholeHint").innerHTML = `尚未安装虚拟麦克风，点击下方按钮一键安装`;
-    btn.textContent = "一键安装虚拟麦克风驱动（需输一次密码）";
+    $("#blackholeHint").innerHTML = t("bhMissing");
+    btn.textContent = t("bhInstallBtn");
     btn.classList.remove("hidden");
   }
 }
@@ -230,9 +235,8 @@ function renderBlackholeHint() {
 function render(st: StatusResponse) {
   lastStatus = st;
   const s = st.stats;
-  const pill = s.connected ? "直播中" : st.running ? "等待手机" : "已停止";
-  $("#running").textContent = (s.remote || s.connected) && st.stats?.remote === undefined ? pill : pill;
-  $("#running").textContent = pill + (s.remote ? " ·远程" : "");
+  const pill = s.connected ? t("livePill") : st.running ? t("waitingPill") : t("stoppedPill");
+  $("#running").textContent = pill + (s.remote ? t("remoteTag") : "");
   $("#running").className = `pill ${s.connected ? "ok" : st.running ? "wait" : "off"}`;
 
   // 配对视图 ↔ 已连接视图切换（只在状态变化时重绘，避免每 500ms 闪动）
@@ -246,8 +250,7 @@ function render(st: StatusResponse) {
     $("#cRtt").textContent = s.rtt_ms != null ? `${Math.round(s.rtt_ms)} ms` : "–";
   }
 
-  if (!st.setup_url) $("#setupUrl").textContent = "服务未运行";
-  $("#certHint").textContent = "扫码即连（任何网络）；同网络会自动切换直连";
+  $("#certHint").textContent = st.running ? t("certHintRun") : t("certHintStop");
 
   $("#vRtt").textContent = s.rtt_ms != null ? `${Math.round(s.rtt_ms)}ms` : "–";
   const total = s.frames_in + s.lost_frames;
@@ -268,9 +271,8 @@ function render(st: StatusResponse) {
 }
 
 if (!isTauri) {
-  $("#qrCard").classList.add("hidden");
-  $<HTMLElement>(".hint").innerHTML =
-    "当前页面在浏览器中打开——桌面 UI 需要 Tauri App 运行（<code>npm run tauri:dev</code>）。";
+  $<HTMLElement>(".browser-hint").classList.remove("hidden");
+  $<HTMLElement>(".browser-hint").innerHTML = t("browserHint");
 } else {
   invoke<StatusResponse>("get_status").then(render).catch(console.error);
   void listen<StatusResponse>("stats", (e) => render(e.payload));
@@ -278,13 +280,13 @@ if (!isTauri) {
   void refreshDevices();
 
   $("#btnRestart").addEventListener("click", async () => {
-    $("#btnRestart").textContent = "重启中…";
+    $("#btnRestart").textContent = t("restarting");
     try {
       render(await invoke<StatusResponse>("start_server"));
     } catch (e) {
       console.error(e);
     }
-    $("#btnRestart").textContent = "重启服务";
+    $("#btnRestart").textContent = t("restartSvc");
     void refreshQr();
     void refreshDevices();
   });
@@ -299,7 +301,7 @@ if (!isTauri) {
       render(await invoke<StatusResponse>("set_output_device", { name }));
     } catch (err) {
       console.error(err);
-      alert(`切换输出设备失败: ${err}`);
+      alert(t("deviceFail", { msg: String(err) }));
     }
   });
   $("#btnRemote").addEventListener("click", async () => {
@@ -313,7 +315,7 @@ if (!isTauri) {
       renderPairingIdle();
     } catch (e) {
       console.error(e);
-      alert(`重置配对码失败: ${e}`);
+      alert(t("resetFail", { msg: String(e) }));
     }
     btn.disabled = false;
   });
@@ -321,9 +323,9 @@ if (!isTauri) {
     const btn = $<HTMLButtonElement>("#btnAutostart");
     const render = async () => {
       try {
-        btn.textContent = (await isEnabled()) ? "已开启 ✓（点击关闭）" : "未开启（点击启用）";
+        btn.textContent = (await isEnabled()) ? t("autoOn") : t("autoOff");
       } catch {
-        btn.textContent = "不可用";
+        btn.textContent = t("autoNA");
         btn.disabled = true;
       }
     };
@@ -343,18 +345,20 @@ if (!isTauri) {
   $("#btnDriver").addEventListener("click", async () => {
     const btn = $<HTMLButtonElement>("#btnDriver");
     btn.disabled = true;
-    btn.textContent = "安装中…（请在系统弹窗输入密码）";
+    btn.textContent = t("installing");
     try {
       const msg = await invoke<string>("install_driver");
       console.log("install_driver:", msg);
     } catch (e) {
-      alert(`驱动安装未完成：${e}`);
+      alert(t("driverFail", { msg: String(e) }));
     }
     btn.disabled = false;
     await refreshDevices();
   });
   $("#setupUrl").addEventListener("click", (e) => {
-    const t = (e.target as HTMLElement).textContent;
-    if (t) copyText(t);
+    copyText(pairQrUrl);
+    const label = $<HTMLElement>(".copy-label");
+    label.textContent = t("copied");
+    setTimeout(() => (label.textContent = t("copy")), 1200);
   });
 }

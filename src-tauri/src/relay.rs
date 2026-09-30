@@ -20,6 +20,15 @@ use tokio_tungstenite::tungstenite::Message;
 pub const RELAY_HOST: &str = "relay.dyzyzj.top";
 pub const PAGE_URL_BASE: &str = "https://relay.dyzyzj.top";
 
+/// 自托管中继覆盖（T2）：设 PHONEMIC_RELAY_HOST / PHONEMIC_PAGE_URL_BASE 指向自建中继，
+/// 例：PHONEMIC_RELAY_HOST=relay.example.com PHONEMIC_PAGE_URL_BASE=https://relay.example.com
+fn relay_host() -> String {
+    std::env::var("PHONEMIC_RELAY_HOST").unwrap_or_else(|_| RELAY_HOST.to_string())
+}
+fn page_url_base() -> String {
+    std::env::var("PHONEMIC_PAGE_URL_BASE").unwrap_or_else(|_| PAGE_URL_BASE.to_string())
+}
+
 /// 桌面静态密钥持久化（数据目录 relay-key.bin，32B 私钥；公钥每次派生）
 pub fn load_or_create_keypair(dir: &Path) -> Result<KeyPair> {
     let _ = std::fs::create_dir_all(dir);
@@ -68,10 +77,10 @@ pub fn ensure_remote_pairing(stats: Arc<Stats>, fifo: Arc<AudioFifo>, extra: &st
     }
     let keypair = load_or_create_keypair(&crate::app::data_dir())?;
     let code = new_pair_code();
-    let url = format!("{PAGE_URL_BASE}/#p={}&k={}", code, keypair.public_b64u());
+    let url = format!("{}/#p={}&k={}", page_url_base(), code, keypair.public_b64u());
     let (kill_tx, kill_rx) = tokio::sync::watch::channel(false);
 
-    let ws_base = format!("wss://{RELAY_HOST}/ws/pair/{code}");
+    let ws_base = format!("wss://{}/ws/pair/{code}", relay_host());
     let kp = keypair.clone();
     let code2 = code.clone();
     // 同步命令上下文 → 用 Tauri 的 async runtime（内部有 Tokio）
@@ -115,8 +124,8 @@ pub fn spawn_remote_pairing(
     fifo: Arc<AudioFifo>,
     kill: tokio::sync::watch::Receiver<bool>,
 ) -> String {
-    let url = format!("{PAGE_URL_BASE}/#p={}&k={}", pair_code, keypair.public_b64u());
-    let ws_url = format!("wss://{RELAY_HOST}/ws/pair/{pair_code}");
+    let url = format!("{}/#p={}&k={}", page_url_base(), pair_code, keypair.public_b64u());
+    let ws_url = format!("wss://{}/ws/pair/{pair_code}", relay_host());
     tokio::spawn(async move {
         stats.set_remote(true);
         let r = relay_session(ws_url, keypair, pair_code, stats.clone(), fifo, kill).await;

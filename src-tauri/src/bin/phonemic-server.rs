@@ -43,10 +43,10 @@ async fn main() -> anyhow::Result<()> {
     let fifo = AudioFifo::new(stats.clone());
     if let Some(path) = &dump {
         fifo.enable_dump(path)?;
-        println!("WAV 转储: {path}");
+        println!("WAV dump: {path}");
     }
     let engine = start_output(device.as_deref(), fifo.clone())?;
-    println!("输出设备: {} @ {}Hz x{}", engine.device_name, engine.sample_rate, engine.channels);
+    println!("Output device: {} @ {}Hz x{}", engine.device_name, engine.sample_rate, engine.channels);
 
     let data_dir = dirs::data_local_dir().map(|d| d.join("phonemic"));
     let cfg = ServerConfig {
@@ -59,11 +59,11 @@ async fn main() -> anyhow::Result<()> {
     };
     let handle = start_server(cfg, stats.clone(), fifo.clone()).await?;
     let ip = lan_ip().map(|i| i.to_string()).unwrap_or_else(|| "127.0.0.1".into());
-    let token_note = if dev { "(--dev 已跳过 token)" } else { "" };
-    println!("手机引导页: http://{ip}:{}/setup#token={} {token_note}", handle.port, handle.token);
+    let token_note = if dev { "(--dev, token skipped)" } else { "" };
+    println!("Phone setup page: http://{ip}:{}/setup#token={} {token_note}", handle.port, handle.token);
     let mut qr_target = format!("http://{ip}:{}/setup#token={}", handle.port, handle.token);
     if let Some(hp) = handle.https_port {
-        println!("手机直连页: https://{ip}:{hp}/#token={}", handle.token);
+        println!("Phone direct page: https://{ip}:{hp}/#token={}", handle.token);
         qr_target = format!("https://{ip}:{hp}/#token={}", handle.token);
     }
     if let Some(qr) = terminal_qr(&qr_target) {
@@ -81,13 +81,13 @@ async fn main() -> anyhow::Result<()> {
         let (tx, rx) = tokio::sync::watch::channel(false);
         _remote_keep_tx = Some(tx);
         let url = relay::spawn_remote_pairing(kp, relay::new_pair_code(), stats.clone(), fifo.clone(), rx);
-        println!("远程配对 URL: {url}");
+        println!("Remote pairing URL: {url}");
         if let Some(qr) = terminal_qr(&url) {
             println!("\n{qr}");
         }
     }
 
-    println!("每 2 秒打印统计，Ctrl-C 退出");
+    println!("Stats every 2s, Ctrl-C to quit");
     loop {
         tokio::select! {
             _ = tokio::time::sleep(std::time::Duration::from_secs(2)) => {
@@ -109,6 +109,6 @@ async fn main() -> anyhow::Result<()> {
         }
     }
     let _ = handle.shutdown.send(true);
-    println!("已退出");
+    println!("Exited");
     Ok(())
 }
