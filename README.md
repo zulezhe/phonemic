@@ -1,5 +1,7 @@
 # PhoneMic — Use your phone as your computer's microphone
 
+[![CI](https://github.com/zulezhe/phonemic/actions/workflows/ci.yml/badge.svg)](https://github.com/zulezhe/phonemic/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/zulezhe/phonemic)](https://github.com/zulezhe/phonemic/releases/latest) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 **手机扫码，即成 Mac/Windows 的系统级麦克风。** Scan a QR code and your phone becomes a system-wide microphone — zero install on the phone, works across networks.
 
 [中文说明](#中文说明)
