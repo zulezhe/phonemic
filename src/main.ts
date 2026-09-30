@@ -218,16 +218,20 @@ async function refreshDevices() {
   renderBlackholeHint();
 }
 
+/// 平台虚拟麦克风：macOS 内嵌安装 BlackHole；Windows 引导安装 VB-CABLE
+const IS_WINDOWS = navigator.userAgent.includes("Windows");
+const VIRTUAL_MIC = IS_WINDOWS ? "CABLE" : "BlackHole";
+
 function renderBlackholeHint() {
-  const has = devicesCache.some((d) => d.includes("BlackHole"));
+  const has = devicesCache.some((d) => d.includes(VIRTUAL_MIC));
   const btn = $<HTMLButtonElement>("#btnDriver");
   if (has) {
-    $("#blackholeHint").innerHTML = t("bhReady");
-    btn.textContent = t("bhFixBtn");
+    $("#blackholeHint").innerHTML = t(IS_WINDOWS ? "bhReadyWin" : "bhReady");
+    btn.textContent = t(IS_WINDOWS ? "bhFixBtnWin" : "bhFixBtn");
     btn.classList.remove("hidden");
   } else {
-    $("#blackholeHint").innerHTML = t("bhMissing");
-    btn.textContent = t("bhInstallBtn");
+    $("#blackholeHint").innerHTML = t(IS_WINDOWS ? "bhMissingWin" : "bhMissing");
+    btn.textContent = t(IS_WINDOWS ? "bhInstallBtnWin" : "bhInstallBtn");
     btn.classList.remove("hidden");
   }
 }

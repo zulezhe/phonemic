@@ -17,7 +17,12 @@ use tauri::Emitter;
 const HTTP_PORT: u16 = 9420;
 const HTTPS_PORT: u16 = 9421;
 /// BlackHole 设备名匹配片段；存在则自动作为输出
+/// 首选虚拟麦克风设备名片段：macOS 内嵌安装 BlackHole（MIT 可再分发）；
+/// Windows 用 VB-CABLE（禁止再分发，只能引导用户去官网安装）
+#[cfg(target_os = "macos")]
 const PREFERRED_DEVICE: &str = "BlackHole";
+#[cfg(not(target_os = "macos"))]
+const PREFERRED_DEVICE: &str = "CABLE";
 
 pub struct AppCtx {
     server: Mutex<Option<server::ServerHandle>>,
@@ -279,7 +284,7 @@ fn pairing_qr() -> Result<PairingInfo, String> {
 
 static LOG_GUARD: OnceLock<tracing_appender::non_blocking::WorkerGuard> = OnceLock::new();
 
-#[cfg(test)]
+#[cfg(all(test, target_os = "macos"))]
 mod tests {
     use super::BH_PKG;
 
@@ -321,12 +326,65 @@ fn reset_remote_pairing() -> Result<String, String> {
 }
 
 /// BlackHole 官方安装包（MIT，允许再分发，附 resources/BLACKHOLE-LICENSE）
+#[cfg(target_os = "macos")]
 const BH_PKG: &[u8] = include_bytes!("../resources/BlackHole2ch-0.7.1.pkg");
 
-/// 一键安装/修复虚拟麦克风驱动：内嵌 pkg 落盘 → 管理员授权安装（弹一次密码）→
-/// 重启 coreaudiod 加载 → 重建输出引擎。返回结果文案。
+/// 平台分发：macOS 一键安装内嵌驱动；Windows 引导安装 VB-CABLE（禁止再分发）
 #[tauri::command]
 async fn install_driver() -> Result<String, String> {
+    #[cfg(target_os = "macos")]
+    return install_driver_macos().await;
+    #[cfg(not(target_os = "macos"))]
+    return install_driver_windows().await;
+}
+
+/// 已安装时（重新）挂接首选设备，返回设备名
+async fn reattach_preferred() -> Result<String, String> {
+    {
+        let mut guard = ctx().engine.lock();
+        *guard = None; // drop 旧流
+    }
+    let chosen = list_output_devices().into_iter().find(|d| d.contains(PREFERRED_DEVICE));
+    match start_output(chosen.as_deref(), ctx().fifo.clone()) {
+        Ok(engine) => {
+            let name = engine.device_name.clone();
+            *ctx().engine.lock() = Some(engine);
+            tracing::info!("输出引擎已重建: {name}");
+            Ok(name)
+        }
+        Err(e) => Err(format!("重建输出失败: {e:#}")),
+    }
+}
+
+/// Windows：检测 VB-CABLE → 已装则挂接，未装则打开官网下载页
+/// （VB-CABLE 许可禁止再分发，不能像 macOS 那样内嵌安装）
+#[cfg(not(target_os = "macos"))]
+async fn install_driver_windows() -> Result<String, String> {
+    if list_output_devices().iter().any(|d| d.contains(PREFERRED_DEVICE)) {
+        let name = reattach_preferred().await?;
+        return Ok(format!("VB-CABLE 已就绪，输出设备: {name}"));
+    }
+    let url = "https://vb-audio.com/Cable/";
+    let open = tokio::task::spawn_blocking(move || {
+        std::process::Command::new("cmd")
+            .args(["/C", "start", "", url])
+            .output()
+    })
+    .await
+    .map_err(|e| format!("打开下载页失败: {e}"))?
+    .map_err(|e| format!("打开下载页失败: {e}"))?;
+    if !open.status.success() {
+        let err = String::from_utf8_lossy(&open.stderr).trim().to_string();
+        return Err(format!("打开下载页失败: {err}"));
+    }
+    tracing::info!("已打开 VB-CABLE 下载页，等待用户安装");
+    Ok("已在浏览器打开 VB-CABLE 下载页：下载安装 CABLE 并重启电脑后，回到这里再点一次按钮完成挂接".into())
+}
+
+/// macOS：内嵌 pkg 落盘 → 管理员授权安装（弹一次密码）→
+/// 重启 coreaudiod 加载 → 重建输出引擎。返回结果文案。
+#[cfg(target_os = "macos")]
+async fn install_driver_macos() -> Result<String, String> {
     let dir = data_dir();
     std::fs::create_dir_all(&dir).map_err(|e| format!("数据目录不可写: {e}"))?;
     let pkg = dir.join("BlackHole2ch-0.7.1.pkg");
@@ -356,20 +414,8 @@ async fn install_driver() -> Result<String, String> {
 
     // coreaudiod 需要一两秒完成驱动加载，随后重建输出引擎重新挂接设备
     tokio::time::sleep(Duration::from_secs(2)).await;
-    {
-        let mut guard = ctx().engine.lock();
-        *guard = None; // drop 旧流
-    }
-    let chosen = list_output_devices().into_iter().find(|d| d.contains(PREFERRED_DEVICE));
-    match start_output(chosen.as_deref(), ctx().fifo.clone()) {
-        Ok(engine) => {
-            let name = engine.device_name.clone();
-            *ctx().engine.lock() = Some(engine);
-            tracing::info!("输出引擎已重建: {name}");
-            Ok(format!("驱动已安装，输出设备: {name}"))
-        }
-        Err(e) => Err(format!("驱动已安装，但重建输出失败: {e:#}")),
-    }
+    let name = reattach_preferred().await.map_err(|e| format!("驱动已安装，但{e}"))?;
+    Ok(format!("驱动已安装，输出设备: {name}"))
 }
 
 pub fn run() {
