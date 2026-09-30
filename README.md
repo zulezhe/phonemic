@@ -12,6 +12,8 @@
 - **Opus / PCM adaptive streaming**, ~6 ms LAN latency, auto-reconnect, jitter buffer
 - Desktop app built with **Tauri 2** (Rust audio path), relay is a ~150-line Cloudflare Worker (free tier), **self-hostable**
 
+**Self-host the relay**: `cd relay-server && docker compose up -d --build`, then point the desktop app at it with `PHONEMIC_RELAY_HOST` — see [docs/self-hosting.md](docs/self-hosting.md)
+
 ## Architecture
 
 ```
@@ -66,6 +68,7 @@ Core: to be decided (currently private). BlackHole is MIT (bundled with its lice
 - 手机端零安装（网页，安卓/iOS 通用）；默认走云端中继（免费层），同一网络自动切换局域网直连（~6ms）
 - 桌面端 Tauri 2（Rust 音频链路：解码 → 自适应抖动缓冲 → 虚拟麦克风）
 - 中继 ~150 行 Cloudflare Worker，支持 Docker 自托管；协议与设计文档见 `docs/`
+- **自托管中继**：`cd relay-server && docker compose up -d --build`，桌面端设 `PHONEMIC_RELAY_HOST` 即可切换，见 [docs/self-hosting.md](docs/self-hosting.md)
 - 商业模式：开源核心 + 官方免费中继 + 自托管（详见路线图）
 
 ```bash

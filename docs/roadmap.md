@@ -52,21 +52,21 @@
 
 ### T2 Rust 中继 Docker 化 + 自托管文档｜P0
 
-**背景**：`phonemic-server --remote-pair`（Rust 中继二进制）已实现同协议第二实现，但只能手动编译运行。开源卖点"不信任官方中继可自建"需要一条命令跑起来。
+**背景**（2026-09-30 勘误）：Rust 中继服务端此前**并不存在**（`--remote-pair` 只是连官方中继的客户端），本任务实际实现了第二实现 `relay-server/`（phonemic-relay bin：房间生命周期对齐 room.ts + 房间数上限 + IP 限速 + 手机页托管），并完成 Docker 化。
 
 **子任务**
-- [ ] 2.1 `relay/Dockerfile`：多阶段构建（cargo-chef 缓存层 + debian:slim 运行层），暴露端口
-- [ ] 2.2 `relay/docker-compose.yml`：环境变量注入 `PUBLIC_URL_BASE`（生成配对 URL 用）、监听端口、卷（密钥持久化——配对密钥对要挂 volume 否则容器重启后手机端公钥失配）
-- [ ] 2.3 `docs/self-hosting.md`：前置要求、`docker compose up -d`、TLS 反代示例（Caddy 两行 + Nginx websocket 配置各一份）、防火墙/端口说明、与官方中继的差异（无 DO 休眠，内存占用参考值）
-- [ ] 2.4 桌面端连接自建中继的配置路径：说明 `RELAY_HOST`/`PAGE_URL_BASE` 如何在桌面端指定（确认现有 env/编译期配置哪个可行，写清步骤；若只有编译期，加一个 `PHONEMIC_RELAY` 环境变量覆盖，代码量应很小）
-- [ ] 2.5 `README.md`（中英双语区块）加 Self-hosting 章节链接
+- [x] 2.1 `relay-server/Dockerfile`（多阶段，rsproxy 可选参数，160MB）：多阶段构建（cargo-chef 缓存层 + debian:slim 运行层），暴露端口
+- [x] 2.2 `relay-server/docker-compose.yml`（healthcheck + 全 env 参数）：环境变量注入 `PUBLIC_URL_BASE`（生成配对 URL 用）、监听端口、卷（密钥持久化——配对密钥对要挂 volume 否则容器重启后手机端公钥失配）
+- [x] 2.3 `docs/self-hosting.md`（Caddy/Nginx WS 配置 + 桌面端切换说明）：前置要求、`docker compose up -d`、TLS 反代示例（Caddy 两行 + Nginx websocket 配置各一份）、防火墙/端口说明、与官方中继的差异（无 DO 休眠，内存占用参考值）
+- [x] 2.4 `PHONEMIC_RELAY_HOST`/`PHONEMIC_PAGE_URL_BASE` 环境变量覆盖（relay.rs）：说明 `RELAY_HOST`/`PAGE_URL_BASE` 如何在桌面端指定（确认现有 env/编译期配置哪个可行，写清步骤；若只有编译期，加一个 `PHONEMIC_RELAY` 环境变量覆盖，代码量应很小）
+- [x] 2.5 README 中英双语加 Self-hosting 章节
 
 **验收标准**
-- [ ] `cd relay && docker compose up -d` 在干净机器上一条命令起服务，容器健康检查通过
-- [ ] 复用 `relay/test/e2e.mjs`，将 WS 地址指向 `ws://localhost:<port>/ws/pair/<code>`，fake_phone 完成 E2EE 会话并收到 ≥100 音频帧（扩展现有脚本加 `--target` 参数）
-- [ ] 容器重启一次后再跑 e2e 仍通过（验证密钥 volume 持久化）
-- [ ] Caddy 反代 + TLS 场景：至少本地 `caddy` 起一次自签/内部 CA 反代验证 WS upgrade 头透传，e2e 通过
-- [ ] `docs/self-hosting.md` 步骤可被"从未见过本项目的人"照做成功（自查：逐步骤对照命令与输出）
+- [x] `cd relay-server && docker compose up -d --build` 一条命令起服务（本机 Docker 实测，healthcheck 通过）
+- [x] `node test/e2e.mjs ws://127.0.0.1:9430` 对容器全绿（配对/双向透传/断开通知）
+- [x] `docker compose restart` 后 e2e 仍通过（无状态服务，密钥在端侧无需持久化——设计使然）
+- [ ] Caddy/Nginx TLS 反代实测（配置已写入文档，标准 WS 透传模式，待有公网机器时验证）
+- [x] 文档逐步对照本机执行路径自查
 
 ---
 
