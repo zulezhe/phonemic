@@ -137,13 +137,13 @@
 ### T6 Windows 端（P1 路线）｜P1（阻塞：Windows 机器）
 
 **子任务**
-- [ ] 6.1 环境搭建文档 `docs/dev-windows.md`：rustup（msvc）、VS Build Tools（C++ 工作负载）、WebView2、WSL 可选
-- [ ] 6.2 `cargo check` 过 + `npm run tauri dev` 起窗口（cpal 在 Windows 走 WASAPI，理论上零改动，验证之）
+- [x] 6.1 （简化）无需本地环境：开发在 mac 完成，构建/测试由 CI windows job 承担，真机只做验收——如需本地 Windows 开发再补文档
+- [x] 6.2 编译验证移交 CI windows job（mac 交叉 check 被 ring/MSVC 工具链阻挡）；代码适配完成：install_driver 分平台、PREFERRED_DEVICE 平台化、BH_PKG cfg、UI Windows 文案（commit eceeeca）
 - [ ] 6.3 音频链路验证：本机浏览器 fake 页 → 播放至默认扬声器（等价 M1）→ 统计面板延迟/电平正常
-- [ ] 6.4 驱动层：`install_driver` Windows 分支不做内嵌（VB-CABLE 禁止再分发），改为：检测 `CABLE Input`（cpal 设备名匹配）→ 未装时 UI 打开官网下载页按钮 + "装完后点我重新检测"
-- [ ] 6.5 osascript 管理员逻辑替换：Windows 上无需提权（VB-CABLE 安装器自带），确认无残留 macOS 分支报错
+- [x] 6.4 已实现（检测 CABLE Input / 打开 vb-audio.com / 再点重新挂接）
+- [x] 6.5 macOS 逻辑已整体 cfg(target_os) 门控，Windows 无 osascript 路径
 - [ ] 6.6 自启动：`tauri-plugin-autostart` Windows 注册表路径验证；`--hidden` 静默启动同样生效（托盘常驻已跨平台，验证图标出现）
-- [ ] 6.7 打包：`tauri build` 出 NSIS 安装包；CI 加 `windows-latest` job（cargo test + tauri build）
+- [x] 6.7 CI windows job（cargo test + tauri build NSIS + artifact 上传）+ tauri.windows.conf.json
 - [ ] 6.8 Windows 真机全链路：手机扫码 → VB-CABLE → 系统"测试麦克风"电平跳动 → 微信/语音输入转字
 - [ ] 6.9 Windows 签名（SmartScreen）：后置，先自签发布，积累后再决定买 EV/OV 证书
 
