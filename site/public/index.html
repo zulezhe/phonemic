@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhoneMic — Use your phone as your PC microphone</title>
+<meta name="description" content="Turn your phone into a system-wide microphone for your computer. Zero install on the phone, works across networks, end-to-end encrypted. Free & open source.">
+<meta property="og:title" content="PhoneMic — Your phone as a PC microphone">
+<meta property="og:description" content="Scan a QR code and talk. Zero install on the phone, end-to-end encrypted, works on any network.">
+<meta property="og:type" content="website">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+  :root{--ink:#16181d;--sub:#5b6270;--line:#e6e8ec;--brand:#2f6fed;--brand-ink:#1d54c0;--bg:#fff;--soft:#f6f8fb;--ok:#0a8f4e}
+  *{box-sizing:border-box;margin:0}
+  body{font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg)}
+  a{color:var(--brand);text-decoration:none}
+  .wrap{max-width:880px;margin:0 auto;padding:0 22px}
+  header{border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;gap:10px;padding:16px 0}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;color:var(--ink)}
+  .logo svg{width:26px;height:26px;stroke:var(--brand);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .nav .spacer{flex:1}
+  .nav a{font-size:14.5px;color:var(--sub)}
+  .hero{padding:64px 0 56px;text-align:center}
+  .hero h1{font-size:clamp(30px,5.2vw,46px);line-height:1.18;letter-spacing:-.5px;font-weight:800}
+  .hero p.sub{color:var(--sub);font-size:clamp(16px,2.4vw,19px);margin:16px auto 30px;max-width:560px}
+  .cta{display:inline-flex;align-items:center;gap:9px;background:var(--brand);color:#fff;padding:14px 30px;border-radius:11px;font-size:17px;font-weight:600;transition:.15s}
+  .cta:hover{background:var(--brand-ink)}
+  .cta svg{width:19px;height:19px;fill:#fff}
+  .cta-hint{display:block;margin-top:12px;font-size:13px;color:var(--sub)}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--sub);background:var(--soft);border:1px solid var(--line);border-radius:99px;padding:5px 13px;margin-bottom:22px}
+  .badge b{color:var(--ok);font-weight:600}
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;padding:8px 0 40px}
+  .step{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:24px 20px;text-align:left}
+  .step .n{display:inline-flex;width:30px;height:30px;border-radius:99px;background:var(--brand);color:#fff;font-weight:700;align-items:center;justify-content:center;font-size:15px;margin-bottom:12px}
+  .step h3{font-size:16.5px;margin-bottom:6px}
+  .step p{font-size:14px;color:var(--sub)}
+  h2.sec{font-size:26px;letter-spacing:-.3px;margin:44px 0 6px;text-align:center}
+  p.sec-sub{color:var(--sub);text-align:center;margin-bottom:26px;font-size:15px}
+  .feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;padding-bottom:8px}
+  .feat{border:1px solid var(--line);border-radius:14px;padding:20px}
+  .feat h3{font-size:16px;margin-bottom:6px}
+  .feat p{font-size:14px;color:var(--sub)}
+  .faq{max-width:680px;margin:10px auto 0;padding-bottom:30px}
+  .faq details{border-bottom:1px solid var(--line);padding:14px 4px}
+  .faq summary{cursor:pointer;font-weight:600;font-size:15.5px}
+  .faq p{color:var(--sub);font-size:14.5px;padding:10px 2px 2px}
+  .privacy{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:26px;margin:18px 0 8px}
+  .privacy h3{font-size:17px;margin-bottom:8px}
+  .privacy p,.privacy li{font-size:14.5px;color:var(--sub)}
+  .privacy ul{padding-left:20px;margin-top:6px}
+  footer{border-top:1px solid var(--line);margin-top:44px;padding:26px 0 40px;color:var(--sub);font-size:14px;display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+  .lang{cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:3px 10px;font-size:13px;color:var(--sub);background:var(--bg)}
+  [data-i18n]{transition:opacity .12s}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap nav">
+    <span class="logo"><svg viewBox="0 0 24 24"><path d="M12 15.5a4 4 0 0 0 4-4v-5a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4Z"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>PhoneMic</span>
+    <span class="spacer"></span>
+    <a href="https://github.com/zulezhe/phonemic">GitHub</a>
+    <a href="#faq" data-i18n="navFaq">FAQ</a>
+    <a href="#privacy" data-i18n="navPrivacy">Privacy</a>
+    <button class="lang" id="langBtn">中文</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <span class="badge"><b>●</b>&nbsp;<span data-i18n="badge">Free & open source</span></span>
+    <h1 data-i18n="h1">Use your phone as your<br>PC microphone</h1>
+    <p class="sub" data-i18n="sub">No mic? Scan a QR code and talk. Nothing to install on the phone — works on any network, end-to-end encrypted.</p>
+    <a class="cta" href="https://github.com/zulezhe/phonemic/releases/latest">
+      <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4.5-4.5M12 15 7.5 10.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+      <span data-i18n="download">Download for macOS</span>
+    </a>
+    <span class="cta-hint" data-i18n="downloadHint">Free · macOS 12+ · Windows coming soon · Source on GitHub</span>
+  </section>
+
+  <h2 class="sec" data-i18n="stepsTitle">Three steps, ten seconds</h2>
+  <p class="sec-sub" data-i18n="stepsSub">From "no microphone" to talking in your favorite apps</p>
+  <section class="steps">
+    <div class="step"><span class="n">1</span><h3 data-i18n="s1t">Scan the QR code</h3><p data-i18n="s1d">Open the desktop app and point your phone camera at the code. Any browser works — no app to install.</p></div>
+    <div class="step"><span class="n">2</span><h3 data-i18n="s2t">Allow the microphone</h3><p data-i18n="s2d">One tap in the browser. Your phone is now a system-wide microphone.</p></div>
+    <div class="step"><span class="n">3</span><h3 data-i18n="s3t">Talk anywhere</h3><p data-i18n="s3d">Dictation, Zoom, OBS, Discord — pick "PhoneMic" as the input in any app on your computer.</p></div>
+  </section>
+
+  <h2 class="sec" data-i18n="featTitle">Why PhoneMic</h2>
+  <p class="sec-sub" data-i18n="featSub">Built for the moment your mic breaks — or the one you never had</p>
+  <section class="feats">
+    <div class="feat"><h3 data-i18n="f1t">Zero install on the phone</h3><p data-i18n="f1d">The phone side is a web page. Scan, allow, talk. Android and iOS both work.</p></div>
+    <div class="feat"><h3 data-i18n="f2t">Works on any network</h3><p data-i18n="f2d">Phone on cellular, PC on Wi-Fi? No problem. On the same network it silently switches to a ~6 ms direct link.</p></div>
+    <div class="feat"><h3 data-i18n="f3t">End-to-end encrypted</h3><p data-i18n="f3d">Keys are derived from your pairing code. The relay only ever sees ciphertext. No account, no telemetry.</p></div>
+    <div class="feat"><h3 data-i18n="f4t">Tiny & open source</h3><p data-i18n="f4d">A ~5 MB native app (Tauri + Rust). MIT licensed — you can even self-host the relay with one Docker command.</p></div>
+  </section>
+
+  <section class="privacy" id="privacy">
+    <h3 data-i18n="pvTitle">Privacy, in plain words</h3>
+    <p data-i18n="pvLead">Your voice is the payload — so the design assumes zero trust in every server:</p>
+    <ul>
+      <li data-i18n="pv1">The pairing code on your screen is combined (HKDF-SHA256) with an ECDH handshake to derive the session key.</li>
+      <li data-i18n="pv2">All audio is AES-256-GCM encrypted on your phone and decrypted on your computer. The relay forwards ciphertext it cannot read.</li>
+      <li data-i18n="pv3">No account, no analytics, no third-party scripts on the connection page. The desktop app is fully open source.</li>
+    </ul>
+  </section>
+
+  <h2 class="sec" id="faq" data-i18n="faqTitle">FAQ</h2>
+  <section class="faq">
+    <details open><summary data-i18n="q1">What's the latency?</summary><p data-i18n="a1">About 6 ms round-trip on the same network (direct link), 30–120 ms via the cloud relay across networks. Tuned for voice input and calls.</p></details>
+    <details><summary data-i18n="q2">Does it work when the phone screen locks?</summary><p data-i18n="a2">The web page holds a wake lock while streaming, but iOS stops capture when you switch away. For long sessions keep the page in the foreground — it's designed for short bursts like dictation.</p></details>
+    <details><summary data-i18n="q3">Do I need to install a driver?</summary><p data-i18n="a3">Yes — apps need a virtual microphone device. The macOS app installs BlackHole (MIT) with one click. On Windows we guide you to VB-CABLE.</p></details>
+    <details><summary data-i18n="q4">Can I run my own relay?</summary><p data-i18n="a4">Yes. The relay is open source and ships as a Docker image: <code>cd relay-server && docker compose up -d</code>. Point the desktop app at it with one environment variable. See the self-hosting guide.</p></details>
+    <details><summary data-i18n="q5">Windows version?</summary><p data-i18n="a5">The core is cross-platform (Rust + Tauri). A Windows build with VB-CABLE support is on the roadmap.</p></details>
+  </section>
+</div>
+
+<footer><div class="wrap" style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+  <span>© 2026 PhoneMic</span>
+  <a href="https://github.com/zulezhe/phonemic">GitHub</a>
+  <a href="https://github.com/zulezhe/phonemic/releases">Releases</a>
+  <a href="https://github.com/zulezhe/phonemic/blob/main/LICENSE">MIT License</a>
+  <span style="flex:1"></span>
+  <span>relay.dyzyzj.top</span>
+</div></footer>
+
+<script>
+const I18N = {
+  en: {},
+  zh: {
+    badge: "免费且开源",
+    navFaq: "常见问题", navPrivacy: "隐私",
+    h1: "把手机变成<br>电脑的麦克风",
+    sub: "没有麦克风？扫个码就能说。手机端零安装，跨网络可用，端到端加密。",
+    download: "下载 macOS 版", downloadHint: "免费 · macOS 12+ · Windows 开发中 · 源码在 GitHub",
+    stepsTitle: "三步搞定，十秒上手", stepsSub: "从“没有麦克风”到你常用的应用里开口说话",
+    s1t: "扫码", s1d: "打开桌面端，用手机相机扫屏幕上的二维码。任何浏览器都行，无需装 App。",
+    s2t: "授权麦克风", s2d: "在浏览器里点一下允许，手机即刻成为系统级麦克风。",
+    s3t: "随处开口", s3d: "语音输入、Zoom、OBS、Discord——在电脑任意应用里选择 PhoneMic 作为输入。",
+    featTitle: "为什么选 PhoneMic", featSub: "为“麦克风坏了”或“根本没有”的那一刻而生",
+    f1t: "手机端零安装", f1d: "手机侧就是一个网页。扫码、授权、开说。安卓和 iOS 通用。",
+    f2t: "跨网络可用", f2d: "手机在蜂窝、电脑在 Wi-Fi？没问题。同网络时自动切换到约 6ms 的直连。",
+    f3t: "端到端加密", f3d: "密钥由配对码派生，中继只见密文。无账号、无遥测。",
+    f4t: "小巧开源", f4d: "约 5MB 的原生应用（Tauri + Rust）。MIT 协议，中继可用一条 Docker 命令自托管。",
+    pvTitle: "隐私，用大白话说",
+    pvLead: "你的声音就是传输的内容——所以设计上不信任任何服务器：",
+    pv1: "屏幕上的配对码与 ECDH 握手经 HKDF-SHA256 派生会话密钥。",
+    pv2: "所有音频在手机上以 AES-256-GCM 加密、在电脑上解密。中继转发的只是它无法读懂的密文。",
+    pv3: "无账号、无统计、连接页无第三方脚本。桌面端完全开源。",
+    faqTitle: "常见问题",
+    q1: "延迟怎么样？", a1: "同网络直连往返约 6ms；跨网络走云端中继约 30–120ms。为语音输入和通话场景调优。",
+    q2: "手机锁屏后会断吗？", a2: "推流时网页会保持屏幕常亮，但 iOS 切后台会停止采集。长会话请保持页面在前台——它为听写这类短场景设计。",
+    q3: "需要装驱动吗？", a3: "需要——应用需要一个虚拟麦克风设备。macOS 版一键安装 BlackHole（MIT），Windows 版会引导安装 VB-CABLE。",
+    q4: "可以自建中继吗？", a4: "可以。中继开源并提供了 Docker 镜像：cd relay-server && docker compose up -d。桌面端用一个环境变量即可指向自建实例，详见自托管指南。",
+    q5: "有 Windows 版吗？", a5: "核心完全跨平台（Rust + Tauri），支持 VB-CABLE 的 Windows 版在路线图上。",
+  }
+};
+const apply = (lang) => {
+  const dict = I18N[lang] ?? {};
+  for (const el of document.querySelectorAll("[data-i18n]")) {
+    const v = dict[el.dataset.i18n];
+    if (v) el.innerHTML = v;
+  }
+  document.documentElement.lang = lang;
+  document.title = lang === "zh" ? "PhoneMic — 把手机变成电脑的麦克风" : "PhoneMic — Use your phone as your PC microphone";
+  document.querySelector('meta[name="description"]').content = lang === "zh"
+    ? "把手机变成电脑的系统级麦克风。手机端零安装、跨网络可用、端到端加密。免费开源。"
+    : "Turn your phone into a system-wide microphone for your computer. Zero install on the phone, works across networks, end-to-end encrypted. Free & open source.";
+  document.getElementById("langBtn").textContent = lang === "zh" ? "English" : "中文";
+};
+let lang = new URLSearchParams(location.search).get("lang")
+  ?? ((navigator.language || "en").toLowerCase().startsWith("zh") ? "zh" : "en");
+apply(lang);
+document.getElementById("langBtn").addEventListener("click", () => {
+  lang = lang === "zh" ? "en" : "zh";
+  history.replaceState(null, "", "?lang=" + lang);
+  apply(lang);
+});
+</script>
+</body>
+</html>

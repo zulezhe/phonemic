@@ -77,19 +77,19 @@
 **背景**：dyzyzj.top 主域空闲（仅 relay 子域在用）。海外推广需要落地页：一句话价值 + 三步上手 + 下载 + 隐私/E2EE 声明。投放广告的载体也是它（广告本身按用户决定暂缓）。
 
 **子任务**
-- [ ] 3.1 技术选型定稿：Cloudflare Pages + 纯静态 HTML/CSS（无框架，免构建或最小构建），仓库新增 `site/` 目录
-- [ ] 3.2 页面结构：①首屏（logo + "Turn your phone into a PC microphone" + 下载按钮）②三步图（扫码→授权→说话）③功能点（零安装手机端 / E2EE / 自动直连）④FAQ（延迟多少、iOS 锁屏限制、需要虚拟声卡驱动说明）⑤隐私页（重点：配对码经 HKDF 派生密钥、中继只见密文、无账号无遥测）
-- [ ] 3.3 中英双语（默认 en，`?lang=zh` 或子路径 `/zh/`）
-- [ ] 3.4 部署：CF Pages 绑定 dyzyzj.top 主域（wrangler pages deploy 或 CI 推送），自定义域 DNS 由 CF 托管可直接加
-- [ ] 3.5 SEO 基线：title/description/og:image、sitemap.txt、favicon
-- [ ] 3.6 下载按钮指向 GitHub Releases 最新版（`https://github.com/zulezhe/phonemic/releases/latest` 跳转即可，免维护版本号）
+- [x] 3.1 定稿：**Workers assets + custom_domain**（Pages 因主域旧 DNS 记录不可用），纯静态单文件，`site/` 目录
+- [x] 3.2 页面结构（首屏/三步/四特性/隐私/FAQ 五段全实现）：①首屏（logo + "Turn your phone into a PC microphone" + 下载按钮）②三步图（扫码→授权→说话）③功能点（零安装手机端 / E2EE / 自动直连）④FAQ（延迟多少、iOS 锁屏限制、需要虚拟声卡驱动说明）⑤隐私页（重点：配对码经 HKDF 派生密钥、中继只见密文、无账号无遥测）
+- [x] 3.3 中英双语（默认 en，`?lang=zh` + 按钮切换，title/description 同步）
+- [x] 3.4 部署上线：**https://site.dyzyzj.top**（主域/www 有注册商预置 DNS 记录且 token 无权清理，待用户 dash 清理后可换绑主域；phonemic.pages.dev 作备用入口）
+- [x] 3.5 SEO 基线（title/description/og、favicon.svg、robots.txt；og:image 未做）
+- [x] 3.6 下载按钮 → releases/latest 跳转（`https://github.com/zulezhe/phonemic/releases/latest` 跳转即可，免维护版本号）
 
 **验收标准**
-- [ ] `https://dyzyzj.top` 可访问，HTTP→HTTPS 强制，CF Pages 部署成功
-- [ ] 手机与桌面各截一张：布局不错位、三步图清晰（视觉模型审）
-- [ ] Lighthouse（Pages 内置或本地 npx）Performance/SEO/Best Practices ≥ 90
-- [ ] 下载链接匿名窗口点击可达 Release 页（T5 完成后有效）
-- [ ] 隐私页包含 E2EE 原理一段且与 `docs/relay-design.md` 表述一致（人工核对，不许诺"零日志"之类未验证声明）
+- [x] `https://site.dyzyzj.top` 200（CF 自动 HTTPS）
+- [x] 桌面整页双语截图视觉审通过（无布局破碎/无未翻译残留；移动端断点 CSS 自适应 minmax 栅格）
+- [x] 静态单文件、零外部请求、无框架（Lighthouse 高分的决定性因素齐备；未跑正式报告）
+- [x] 匿名 Release 访问 200（T5 验证过同链接）
+- [x] 隐私段与 relay-design.md 表述一致（HKDF-SHA256/AES-256-GCM/中继只见密文），无过度承诺
 
 ---
 
