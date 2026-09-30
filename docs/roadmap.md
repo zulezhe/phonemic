@@ -143,7 +143,7 @@
 - [x] 6.4 已实现（检测 CABLE Input / 打开 vb-audio.com / 再点重新挂接）
 - [x] 6.5 macOS 逻辑已整体 cfg(target_os) 门控，Windows 无 osascript 路径
 - [ ] 6.6 自启动：`tauri-plugin-autostart` Windows 注册表路径验证；`--hidden` 静默启动同样生效（托盘常驻已跨平台，验证图标出现）
-- [x] 6.7 CI windows job（cargo test + tauri build NSIS + artifact 上传）+ tauri.windows.conf.json
+- [x] 6.7 CI windows job（cargo test + tauri build NSIS + artifact 上传）+ tauri.windows.conf.json；**注**：Artifact 存储配额为账号级共享，被占满时上传失败不阻塞 job（continue-on-error），配额恢复后 `gh run rerun --failed` 重新上传
 - [ ] 6.8 Windows 真机全链路：手机扫码 → VB-CABLE → 系统"测试麦克风"电平跳动 → 微信/语音输入转字
 - [ ] 6.9 Windows 签名（SmartScreen）：后置，先自签发布，积累后再决定买 EV/OV 证书
 
