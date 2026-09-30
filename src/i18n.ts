@@ -61,6 +61,22 @@ const STR: Record<string, Entry> = {
     zh: "✅ 虚拟麦克风就绪 —— 电脑应用选择 <b>BlackHole 2ch</b> 即可",
     en: "✅ Virtual mic ready — pick <b>BlackHole 2ch</b> in your apps",
   },
+  bhReadyWin: {
+    zh: "✅ 虚拟麦克风就绪 —— 电脑应用选择 <b>CABLE Input</b> 即可",
+    en: "✅ Virtual mic ready — pick <b>CABLE Input</b> in your apps",
+  },
+  bhMissingWin: {
+    zh: "尚未安装虚拟麦克风（VB-CABLE），点击下方按钮打开官网下载",
+    en: "Virtual microphone (VB-CABLE) not installed — use the button below to open the download page",
+  },
+  bhInstallBtnWin: {
+    zh: "打开 VB-CABLE 官网安装（装完回来再点一次）",
+    en: "Open VB-CABLE download page (click again after installing)",
+  },
+  bhFixBtnWin: {
+    zh: "重新检测 / 挂接 CABLE Input",
+    en: "Re-detect / attach CABLE Input",
+  },
   bhFixBtn: { zh: "修复驱动（重装 + 重启音频服务）", en: "Repair driver (reinstall + restart audio)" },
   bhMissing: { zh: "尚未安装虚拟麦克风，点击下方按钮一键安装", en: "Virtual microphone not installed yet — use the button below" },
   bhInstallBtn: { zh: "一键安装虚拟麦克风驱动（需输一次密码）", en: "Install virtual mic driver (one password prompt)" },

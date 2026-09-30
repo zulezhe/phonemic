@@ -44,3 +44,31 @@ jobs:
         with: { node-version: 22 }
       - run: npm --prefix relay install
       - run: npx --prefix relay tsc -p relay/tsconfig.json
+
+  windows:
+    name: Rust（Windows，测试 + NSIS 构建）
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm --prefix phone install
+      - run: npm --prefix phone run build   # rust-embed 需要 phone/dist 存在
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: "src-tauri" }
+      - name: cargo test
+        run: cargo test
+        working-directory: src-tauri
+      - name: tauri build（NSIS 安装包）
+        run: |
+          npm ci
+          npm run build
+          npx tauri build --bundles nsis --config src-tauri/tauri.windows.conf.json
+        shell: pwsh
+      - name: 上传安装包
+        uses: actions/upload-artifact@v4
+        with:
+          name: phonemic-windows-nsis
+          path: src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: warn
