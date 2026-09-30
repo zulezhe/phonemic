@@ -1,0 +1,10 @@
+# PhoneMic 官网：Workers assets 托管，custom_domain 部署时自动建 DNS + 证书
+name = "phonemic-site"
+compatibility_date = "2025-09-01"
+
+routes = [
+  { pattern = "site.dyzyzj.top", custom_domain = true }
+]
+
+[assets]
+directory = "public"
