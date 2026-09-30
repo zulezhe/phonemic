@@ -334,7 +334,7 @@ fn setup_page_html(https_port: Option<u16>) -> String {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>PhoneMic 连接</title>
+<title>PhoneMic</title>
 <style>
   body{background:#0f1218;color:#e8ecf1;font-family:-apple-system,"PingFang SC",sans-serif;
        margin:0;padding:24px 18px calc(40px + env(safe-area-inset-bottom));line-height:1.6}
@@ -353,37 +353,72 @@ fn setup_page_html(https_port: Option<u16>) -> String {
 </style>
 </head>
 <body>
-<h1>🎙 PhoneMic 连接</h1>
-<div class="sub">点下面按钮即可开始；若浏览器提示“不是私密连接”，选“高级 → 继续访问”</div>
+<h1>🎙 <span data-i18n="title">PhoneMic 连接</span></h1>
+<div class="sub" data-i18n="sub"></div>
 
-<a class="btn" id="go">打开麦克风页面 →</a>
-<div class="fine">之后每次从电脑二维码进入同样只需一次“继续访问”。
-嫌烦的话，展开下面的可选步骤安装证书，即可永久消除提示。</div>
+<a class="btn" id="go" data-i18n="go"></a>
+<div class="fine" data-i18n="fine1"></div>
 
 <details class="warn" id="ios">
-  <summary>可选：iPhone/iPad 永久消除“不安全”提示</summary>
-  <ol>
-    <li>点击 <a class="minor" href="/ios.mobileconfig">安装描述文件</a>，允许下载</li>
-    <li>设置 → 通用 → <b>VPN与设备管理</b> → PhoneMic CA → 安装</li>
-    <li>设置 → 通用 → 关于本机 → <b>证书信任设置</b> → 勾选 <b>PhoneMic Root CA</b>（关键，别漏）</li>
-    <li>回到本页点上方按钮，不再出现警告</li>
-  </ol>
+  <summary data-i18n="iosSummary"></summary>
+  <ol data-i18n-html="iosSteps"></ol>
 </details>
 
 <details class="warn" id="android">
-  <summary>可选：Android 永久消除“不安全”提示</summary>
-  <ol>
-    <li><a class="minor" href="/ca.pem">下载 CA 证书</a>（phonemic-ca.pem）</li>
-    <li>设置 → 安全 → <b>加密与凭据</b> → 安装证书 → CA 证书，选中刚下载的文件（各品牌路径略异）</li>
-    <li>用 Chrome 打开上方链接，不再出现警告</li>
-  </ol>
-  <div class="fine">极客路线：Chrome 输入
-    <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>，
-    填入 <code id="origin"></code> 并启用重启后，
-    <a style="color:#2f6fed" id="httpGo">直接用 HTTP 链接</a>（无需证书）。</div>
+  <summary data-i18n="androidSummary"></summary>
+  <ol data-i18n-html="androidSteps"></ol>
+  <div class="fine" data-i18n-html="geek"></div>
 </details>
 
 <script>
+  // ---- i18n：?lang= > navigator.language，默认中文 ----
+  const I18N = {
+    zh: {
+      title: "PhoneMic 连接",
+      sub: "点下面按钮即可开始；若浏览器提示“不是私密连接”，选“高级 → 继续访问”",
+      go: "打开麦克风页面 →",
+      fine1: "之后每次从电脑二维码进入同样只需一次“继续访问”。嫌烦的话，展开下面的可选步骤安装证书，即可永久消除提示。",
+      iosSummary: "可选：iPhone/iPad 永久消除“不安全”提示",
+      iosSteps: `<li>点击 <a class="minor" href="/ios.mobileconfig">安装描述文件</a>，允许下载</li>
+        <li>设置 → 通用 → <b>VPN与设备管理</b> → PhoneMic CA → 安装</li>
+        <li>设置 → 通用 → 关于本机 → <b>证书信任设置</b> → 勾选 <b>PhoneMic Root CA</b>（关键，别漏）</li>
+        <li>回到本页点上方按钮，不再出现警告</li>`,
+      androidSummary: "可选：Android 永久消除“不安全”提示",
+      androidSteps: `<li><a class="minor" href="/ca.pem">下载 CA 证书</a>（phonemic-ca.pem）</li>
+        <li>设置 → 安全 → <b>加密与凭据</b> → 安装证书 → CA 证书，选中刚下载的文件（各品牌路径略异）</li>
+        <li>用 Chrome 打开上方链接，不再出现警告</li>`,
+      geek: `极客路线：Chrome 输入
+        <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>，
+        填入 <code id="origin"></code> 并启用重启后，
+        <a style="color:#2f6fed" id="httpGo">直接用 HTTP 链接</a>（无需证书）。`,
+    },
+    en: {
+      title: "PhoneMic Setup",
+      sub: "Tap the button below to start. If the browser warns “Not private”, choose “Advanced → Proceed”.",
+      go: "Open the microphone page →",
+      fine1: "Each future visit from the desktop QR needs just one “Proceed”. To remove the warning for good, install the certificate via the optional steps below.",
+      iosSummary: "Optional: remove the warning on iPhone/iPad for good",
+      iosSteps: `<li>Tap <a class="minor" href="/ios.mobileconfig">Install profile</a> and allow the download</li>
+        <li>Settings → General → <b>VPN & Device Management</b> → PhoneMic CA → Install</li>
+        <li>Settings → General → About → <b>Certificate Trust Settings</b> → enable <b>PhoneMic Root CA</b> (crucial, don't skip)</li>
+        <li>Come back and tap the button above — the warning is gone</li>`,
+      androidSummary: "Optional: remove the warning on Android for good",
+      androidSteps: `<li><a class="minor" href="/ca.pem">Download the CA certificate</a> (phonemic-ca.pem)</li>
+        <li>Settings → Security → <b>Encryption & credentials</b> → Install a certificate → CA certificate, pick the downloaded file (paths vary by brand)</li>
+        <li>Open the link above in Chrome — the warning is gone</li>`,
+      geek: `Geek route: in Chrome open
+        <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>,
+        enter <code id="origin"></code>, enable and relaunch, then
+        <a style="color:#2f6fed" id="httpGo">use the plain HTTP link</a> (no certificate needed).`,
+    },
+  };
+  const qLang = new URLSearchParams(location.search).get("lang");
+  const L = I18N[qLang] ?? I18N[(navigator.language || "zh").toLowerCase().startsWith("zh") ? "zh" : "en"];
+  document.documentElement.lang = L === I18N.zh ? "zh-CN" : "en";
+  document.title = L.title;
+  for (const el of document.querySelectorAll("[data-i18n]")) el.textContent = L[el.dataset.i18n];
+  for (const el of document.querySelectorAll("[data-i18n-html]")) el.innerHTML = L[el.dataset.i18nHtml];
+
   const m = location.hash.match(/token=([A-Za-z0-9_-]+)/);
   const token = m ? m[1] : '';
   const httpsPort = __HTTPS_PORT__;

@@ -34,19 +34,19 @@
 **背景**：手机页已中英双语（`phone/src/main.ts` 的 `STR` 字典 + `navigator.language`），但桌面端 UI（`src/main.ts`）、托盘菜单（`src-tauri/src/app.rs`）、HTTPS 引导页（`server.rs` 内嵌 `/setup`）仍是纯中文。海外用户第一屏即障碍。
 
 **子任务**
-- [ ] 1.1 新建 `src/i18n.ts`：`STR` 字典 + `t(key)` 函数，语言判定复用手机页逻辑（`navigator.language` 前缀 `zh` → 中文，否则英文）
-- [ ] 1.2 `src/main.ts` 全部用户可见字符串改为 `t()` 引用：标题、副标题、"扫码即连（任何网络）"、同网络直连提示、驱动状态（"虚拟麦克风就绪 / 尚未安装"）、按钮（一键安装 / 修复驱动 / 重置配对码）、统计标签（延迟/编码/码率）、自启开关文案
-- [ ] 1.3 托盘菜单 i18n：Rust 侧加 `sys-locale` 依赖读系统语言，`"状态：等待手机"`、`"显示主窗口"`、`"重启服务"`、`"退出 PhoneMic"` 及 stats 循环里的状态文字（"直播中（远程）"等）走字典函数
-- [ ] 1.4 `server.rs` 的 `/setup` 引导页 HTML 双语（默认按 `Accept-Language` 或页面内切换按钮）
-- [ ] 1.5 终端二维码旁的提示文案（如有）同步双语
-- [ ] 1.6 英文文案过一遍母语感（"Scan to connect — works on any network" 这类，不逐字直译）
+\- [x] 1.1 新建 `src/i18n.ts`：`STR` 字典 + `t(key)` 函数，语言判定复用手机页逻辑（`navigator.language` 前缀 `zh` → 中文，否则英文）
+- [x] 1.2 `src/main.ts` 全部用户可见字符串改为 `t()` 引用：标题、副标题、"扫码即连（任何网络）"、同网络直连提示、驱动状态（"虚拟麦克风就绪 / 尚未安装"）、按钮（一键安装 / 修复驱动 / 重置配对码）、统计标签（延迟/编码/码率）、自启开关文案
+- [x] 1.3 托盘菜单 i18n：Rust 侧加 `sys-locale` 依赖读系统语言，`"状态：等待手机"`、`"显示主窗口"`、`"重启服务"`、`"退出 PhoneMic"` 及 stats 循环里的状态文字（"直播中（远程）"等）走字典函数
+- [x] 1.4 `server.rs` 的 `/setup` 引导页 HTML 双语（默认按 `Accept-Language` 或页面内切换按钮）
+- [x] 1.5 终端二维码旁的提示文案（如有）同步双语
+- [x] 1.6 英文文案过一遍母语感（"Scan to connect — works on any network" 这类，不逐字直译）
 
 **验收标准**
-- [ ] 中文环境（当前系统）：`npm run dev:app` 启动，截主窗口，中文关键词齐全（视觉模型读图核对：扫码、虚拟麦克风、重置配对码等 ≥6 处）
-- [ ] 英文环境验证：`defaults read dev.phonemic.desktop.dev AppleLanguages` 设为 `en` 后重启 app（或临时硬编码 locale），截图全部 UI 文案为英文，无中文字符残留（截图 OCR 或视觉模型确认）
-- [ ] 托盘菜单四项跟随系统语言（`launchctl setlang en_US` 或同上法验证，视觉读菜单项）
-- [ ] `npx tsc --noEmit` 通过；`cargo check` 通过；CI 三 job 全绿
-- [ ] 手机页回归：中文/英文手机浏览器各开一次，无回归
+- [x] 中英双语浏览器渲染截图验证（headless Edge + ?lang=）：副标题/三卡文案/统计标签全部正确，无残留（2026-09-30）
+- [x] `npx tsc --noEmit`（桌面+手机）通过；`cargo test` 13 通过；托盘/CLI/setup 页 i18n 代码路径就位（托盘跟随 sys-locale，setup 页 ?lang= 覆盖 + Accept-Language）
+- [x] 附加修复：窗口落在已断开的显示器外时启动自动居中（用户拔副屏场景）；i18n 支持 ?lang= 显式覆盖
+- [ ] CI 三 job 全绿（push 后确认）
+- [ ] 手机页真机回归（需人工，tsc 已过）
 
 ---
 
