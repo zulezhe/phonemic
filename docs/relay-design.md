@@ -170,3 +170,19 @@ pub struct Session { active: Box<dyn AudioTransport>, ... }  // 解码/jitter/�
 | **P3d** | 赛马升级（LAN 探测 + 切换握手）+ 打洞信令字段 | 同一网络扫码：1s 内中继出声，随后自动切本地（UI 显示路径变化） |
 
 **部署前提（用户侧）**：dyzyzj.top NS 托管到 Cloudflare + 免费账号开通 Workers。
+
+
+## 滥用防护（T13，2026-09-30）
+
+中继对公网开放，防护目标：封顶恶意流量可制造的请求费与时长费。
+
+| 层 | 机制 | 参数（wrangler.toml vars） |
+|----|------|--------------------------|
+| 入口 | 每 IP 新房限速（RoomLimiter DO 内强一致计数，storage 持久化防 DO 回收丢计数） | `IP_ROOMS_PER_MIN=30` |
+| 房间数 | 全局并发房间注册表（TTL 过期 + 终态主动释放）：等待期占 `WAIT_TTL+10min` 短名额，配对成功升为 `SESSION_MAX+1h` 长名额，EXPIRED/time-limit 时释放 | `MAX_ROOMS`、`ROOM_TTL_CAP_MS` |
+| 消息 | 每房间消息速率滑窗，超限断开（正常音频 ~50msg/s） | `MSG_PER_SEC=150` |
+| 握手 | 等待期连接须在 `HELLO_TIMEOUT_MS` 内发出 hello，否则 NOHELLO 断开（防占房挂机） | `HELLO_TIMEOUT_MS=15000` |
+
+运维：`GET /admin/rooms` 返回活跃房间数与 IP 计数（只读诊断）。升级 Workers Paid 前须完成 roadmap T13.1（Billing 消费告警）。
+
+实现备注：Workers ratelimit binding（beta）突发流量全漏过，已弃用；`CF-Connecting-IP` 转发进 DO 会被剥离，入口以 `X-PM-IP` 显式携带。

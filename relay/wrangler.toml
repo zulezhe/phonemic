@@ -8,11 +8,18 @@ routes = [
 ]
 
 [durable_objects]
-bindings = [{ name = "ROOM", class_name = "PairingRoom" }]
+bindings = [
+  { name = "ROOM", class_name = "PairingRoom" },
+  { name = "LIMITER", class_name = "RoomLimiter" },
+]
 
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["PairingRoom" ]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["RoomLimiter" ]
 
 # 手机页静态资源（远程模式由 P3c 启用；先托管，等页面支持中继协议）
 [assets]
@@ -24,3 +31,13 @@ binding = "ASSETS"
 WAIT_TTL_MS = "3600000"
 # 单会话最长时长
 SESSION_MAX_MS = "14400000"
+# T13：全局并发房间上限（正常负载个位数，攻击封顶 = 此值 × 消息速率）
+MAX_ROOMS = "500"  # 2026-09-30 临时放大：清理测试垃圾注册，待回落
+# 每 IP 每分钟新建房间数（DO 内强一致计数，第一道防线）
+IP_ROOMS_PER_MIN = "30"
+# 房间注册 TTL 上限（自托管可调；临时调小可加速垃圾房间过期）
+ROOM_TTL_CAP_MS = "18000000"
+# 等待期连接须在此时间内发出 hello，否则断开
+HELLO_TIMEOUT_MS = "15000"
+# 每房间消息速率上限（正常音频 50msg/s + 控制帧）
+MSG_PER_SEC = "150"

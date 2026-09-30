@@ -217,19 +217,19 @@
 
 **背景**（2026-09-29 风险评审补入）：DO 按请求（$0.15/M）+ 活跃时长（$12.50/M GB-s）计费，Workers Paid 无消费硬上限。当前架构下**任意随机码**的 `/ws/pair/<code>` 连接都会实例化 PairingRoom（`idFromName` 特性），攻击者无需猜中有效配对码。估算：1 万并发恶意连接持续发消息 ≈ **$1,500/天**（请求费 ~$130 + duration ~$1,380），理论无上限。当前 Workers Free 计划为硬限额（10 万 req/天 + 13,000 GB-s/天），超额表现为**当天中继不可用，不产生账单**——所以现在零账单风险，但升级 Paid 的那一天风险即刻生效，防护必须先行。
 
-**子任务**（当前 Free 期间可先做 a/b/c 零成本部分）
-- [ ] 13.1 CF Billing 设置双档 spend notification（$10 提醒 / $50 提醒），升级当天配置
-- [ ] 13.2 WAF rate limiting 规则：`/ws/pair/*` 路径按 IP 限速（如 10 conn/min/IP）；Free 计划含 1 条免费规则即可覆盖
-- [ ] 13.3 未验证连接快速失败：进房握手加轻量凭证——复用 QR 里的 `t=token` 做 HMAC 证明（桌面端持有 token，Worker 校验），无凭证/错误的连接 2s 内断开，不进 WAIT_TTL 等待（协议小改，`docs/protocol.md` 同步）
-- [ ] 13.4 全局并发房间数上限（单一计数 DO，粗粒度即可，如 500），超限直接拒绝新房间
-- [ ] 13.5 异常监控告警：Workers Analytics 连接数/请求量阈值告警（邮件）
-- [ ] 13.6 升级检查单：升级 Paid = a/b/c/d/e 全部完成 + 当天人工盯 24h 内 metrics
+**子任务**
+- [ ] 13.1 CF Billing 设置双档 spend notification（$10 提醒 / $50 提醒），升级当天配置（需用户控制台操作）
+- [x] 13.2 IP 新房限速：改为 RoomLimiter DO 内强一致计数（30 房/min/IP，storage 持久化）——beta ratelimit binding 突发全漏过已弃用（2026-09-30 线上验证：40 并发拦 10、35 顺序拦 5）
+- [x] 13.3 无握手连接快速失败：等待期 15s 内无 hello 即 NOHELLO 断开（比 HMAC 更轻，两端本就发 hello，零协议改动）
+- [x] 13.4 全局房间数上限：TTL 注册表（等待期短名额/会话期长名额/终态释放），MAX_ROOMS 可调
+- [x] 13.5 诊断端点 `GET /admin/rooms`（活跃数+IP 计数只读）；阈值邮件告警未做
+- [ ] 13.6 升级检查单：升级 Paid = 13.1 完成 + 当天人工盯 24h metrics；**待办**：线上测试垃圾注册清空后（约 2026-10-01 12:00）把 MAX_ROOMS 从 500 调回 100
 
 **验收标准**
-- [ ] 无凭证脚本批量连 `/ws/pair/<随机码>`：每个连接 ≤2s 被断开，不产生房间积压（fake 脚本验证）
-- [ ] 同 IP 高频连接被 rate limit 规则拦截（429），规则命中可在 Security Events 看到
-- [ ] spend notification 测试邮件收到
-- [ ] 升级前演练：临时把某房间并发阈值调小，验证超限拒绝路径生效
+- [x] `relay/test/abuse.mjs` 四场景线上全过（2026-09-30，e6543cc8 部署）：A IP 限速 40 并发拦 10；B 消息洪水 RATE 断开；C 无 hello 挂机 25s 内 NOHELLO 清理；D 正常链路 40/40 零误伤
+- [x] e2e 回归通过（wss://relay.dyzyzj.top）
+- [ ] spend notification 测试邮件收到（13.1，待用户操作）
+- [ ] MAX_ROOMS 调回 100（垃圾注册过期后）
 
 ---
 
