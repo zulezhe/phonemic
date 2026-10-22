@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch: {}
 
 jobs:
   rust:
@@ -48,6 +49,8 @@ jobs:
   windows:
     name: Rust（Windows，测试 + NSIS 构建）
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -66,6 +69,14 @@ jobs:
           npm run build
           npx tauri build --bundles nsis --config src-tauri/tauri.windows.conf.json
         shell: pwsh
+      - name: 发布 Windows 安装包到 Release（仅手动触发）
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create windows-dev --prerelease --target main             --title "PhoneMic Windows (dev build)"             --notes "CI 自动构建，未经 Windows 真机验收。安装后按 README 引导装 VB-CABLE。" || true
+          gh release upload windows-dev src-tauri/target/release/bundle/nsis/*.exe --clobber
       - name: 上传安装包
         uses: actions/upload-artifact@v4
         # 账号级 Artifact 存储配额可能被占满（免费额度全账号共享）；
