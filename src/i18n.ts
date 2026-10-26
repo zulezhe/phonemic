@@ -70,8 +70,8 @@ const STR: Record<string, Entry> = {
     en: "Virtual microphone (VB-CABLE) not installed — use the button below to open the download page",
   },
   bhInstallBtnWin: {
-    zh: "打开 VB-CABLE 官网安装（装完回来再点一次）",
-    en: "Open VB-CABLE download page (click again after installing)",
+    zh: "一键安装虚拟麦克风驱动（自动下载 VB-CABLE）",
+    en: "Install virtual mic driver (auto-downloads VB-CABLE)",
   },
   bhFixBtnWin: {
     zh: "重新检测 / 挂接 CABLE Input",
@@ -102,6 +102,10 @@ const STR: Record<string, Entry> = {
   installing: {
     zh: "安装中…（请在系统弹窗输入密码）",
     en: "Installing… (enter password in the system prompt)",
+  },
+  installingWin: {
+    zh: "下载安装中…请在 UAC 系统弹窗点“是”授权一次",
+    en: "Downloading & installing… click Yes on the system UAC prompt",
   },
   driverFail: { zh: "驱动安装未完成：{msg}", en: "Driver installation incomplete: {msg}" },
 };

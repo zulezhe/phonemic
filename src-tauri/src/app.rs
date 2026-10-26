@@ -358,27 +358,120 @@ async fn reattach_preferred() -> Result<String, String> {
 
 /// Windows：检测 VB-CABLE → 已装则挂接，未装则打开官网下载页
 /// （VB-CABLE 许可禁止再分发，不能像 macOS 那样内嵌安装）
+/// VB-CABLE 官方直链（仅运行时下载，不随安装包分发——其许可禁止再分发；
+/// 自动下载官方原包不属于再分发，且界面明示来源）
+#[cfg(not(target_os = "macos"))]
+const VBCABLE_ZIP_URLS: &[&str] = &[
+    "https://download.vb-audio.com/Download_CABLE/VBCABLE_Driver_Pack45.zip",
+    "https://download.vb-audio.com/Download_CABLE/VBCABLE_Driver_Pack43.zip",
+];
+
+/// 同步执行一段 PowerShell（-NoProfile），返回是否成功
+#[cfg(not(target_os = "macos"))]
+fn run_powershell(script: &str) -> Result<(), String> {
+    let out = std::process::Command::new("powershell")
+        .args(["-NoProfile", "-NonInteractive", "-Command", script])
+        .output()
+        .map_err(|e| format!("启动 PowerShell 失败: {e}"))?;
+    if !out.status.success() {
+        let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
+        return Err(err);
+    }
+    Ok(())
+}
+
+/// 浏览器打开 URL（兜底引导）
+#[cfg(not(target_os = "macos"))]
+fn open_url(url: &str) {
+    let _ = std::process::Command::new("cmd")
+        .args(["/C", "start", "", url])
+        .spawn();
+}
+
 #[cfg(not(target_os = "macos"))]
 async fn install_driver_windows() -> Result<String, String> {
     if list_output_devices().iter().any(|d| d.contains(PREFERRED_DEVICE)) {
         let name = reattach_preferred().await?;
         return Ok(format!("VB-CABLE 已就绪，输出设备: {name}"));
     }
-    let url = "https://vb-audio.com/Cable/";
-    let open = tokio::task::spawn_blocking(move || {
-        std::process::Command::new("cmd")
-            .args(["/C", "start", "", url])
-            .output()
+
+    tracing::info!("一键安装 VB-CABLE：开始下载官方安装包");
+    let dir = data_dir();
+    let dl = dir.join("vbcable");
+    let _ = std::fs::create_dir_all(&dl);
+    let zip = dl.join("vbcable.zip");
+    let _ = std::fs::remove_file(&zip);
+
+    let zip2 = zip.clone();
+    let downloaded = tokio::task::spawn_blocking(move || -> Result<(), String> {
+        for url in VBCABLE_ZIP_URLS {
+            let ps = format!(
+                "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12;                  Invoke-WebRequest -Uri '{url}' -OutFile '{}'",
+                zip2.display()
+            );
+            if run_powershell(&ps).is_ok()
+                && zip2.exists()
+                && std::fs::metadata(&zip2).map(|m| m.len() > 500_000).unwrap_or(false)
+            {
+                return Ok(());
+            }
+        }
+        Err("下载失败".into())
     })
     .await
-    .map_err(|e| format!("打开下载页失败: {e}"))?
-    .map_err(|e| format!("打开下载页失败: {e}"))?;
-    if !open.status.success() {
-        let err = String::from_utf8_lossy(&open.stderr).trim().to_string();
-        return Err(format!("打开下载页失败: {err}"));
+    .map_err(|e| format!("{e}"))?;
+
+    if downloaded.is_err() {
+        open_url("https://vb-audio.com/Cable/");
+        return Ok("自动下载失败（网络原因），已打开 VB-CABLE 官网——请手动下载安装后回来再点一次".into());
     }
-    tracing::info!("已打开 VB-CABLE 下载页，等待用户安装");
-    Ok("已在浏览器打开 VB-CABLE 下载页：下载安装 CABLE 并重启电脑后，回到这里再点一次按钮完成挂接".into())
+
+    // 解压并定位 64 位安装器（优先名字含 64 的 exe）
+    let dl2 = dl.clone();
+    let setup = tokio::task::spawn_blocking(move || -> Result<PathBuf, String> {
+        let ps = format!(
+            "Expand-Archive -Path '{}' -DestinationPath '{}' -Force",
+            dl2.join("vbcable.zip").display(),
+            dl2.display()
+        );
+        run_powershell(&ps)?;
+        let mut candidates: Vec<PathBuf> = std::fs::read_dir(&dl2)
+            .map_err(|e| format!("{e}"))?
+            .filter_map(|e| e.ok())
+            .map(|e| e.path())
+            .filter(|p| p.extension().map(|x| x == "exe").unwrap_or(false))
+            .collect();
+        candidates.sort_by_key(|p| {
+            let n = p.file_name().map(|x| x.to_string_lossy().to_lowercase()).unwrap_or_default();
+            (!n.contains("64"), !n.contains("setup"), !n.contains("install"))
+        });
+        candidates.into_iter().next().ok_or_else(|| "安装包里未找到安装程序".to_string())
+    })
+    .await
+    .map_err(|e| format!("{e}"))??;
+
+    // 提权运行安装器并等待完成（用户只需在 UAC 弹窗点一次"是"）
+    let setup2 = setup.clone();
+    let elevated = tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let ps = format!(
+            "Start-Process -FilePath '{}' -Verb RunAs -Wait",
+            setup2.display()
+        );
+        run_powershell(&ps)
+    })
+    .await
+    .map_err(|e| format!("{e}"))?;
+    if elevated.is_err() {
+        return Err("已取消：安装 VB-CABLE 需要在系统弹窗（UAC）中点\"是\"授权一次".into());
+    }
+
+    tracing::info!("VB-CABLE 安装器执行完毕，检测设备");
+    tokio::time::sleep(Duration::from_secs(3)).await;
+    if list_output_devices().iter().any(|d| d.contains(PREFERRED_DEVICE)) {
+        let name = reattach_preferred().await?;
+        return Ok(format!("虚拟麦克风已安装，输出设备: {name}"));
+    }
+    Ok("安装完成。设备列表尚未出现 CABLE Input——重启电脑后自动挂接（应用已可开机自启）".into())
 }
 
 /// macOS：内嵌 pkg 落盘 → 管理员授权安装（弹一次密码）→

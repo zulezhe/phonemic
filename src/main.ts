@@ -349,7 +349,7 @@ if (!isTauri) {
   $("#btnDriver").addEventListener("click", async () => {
     const btn = $<HTMLButtonElement>("#btnDriver");
     btn.disabled = true;
-    btn.textContent = t("installing");
+    btn.textContent = t(IS_WINDOWS ? "installingWin" : "installing");
     try {
       const msg = await invoke<string>("install_driver");
       console.log("install_driver:", msg);
