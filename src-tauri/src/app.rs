@@ -17,7 +17,7 @@ use tauri::Emitter;
 const HTTP_PORT: u16 = 9420;
 const HTTPS_PORT: u16 = 9421;
 /// BlackHole 设备名匹配片段；存在则自动作为输出
-/// 首选虚拟麦克风设备名片段：macOS 内嵌安装 BlackHole（MIT 可再分发）；
+/// 首选虚拟麦克风设备名片段：macOS 内嵌分发 BlackHole（GPL-3.0，独立程序聚合分发，见 NOTICE）；
 /// Windows 用 VB-CABLE（禁止再分发，只能引导用户去官网安装）
 #[cfg(target_os = "macos")]
 const PREFERRED_DEVICE: &str = "BlackHole";
@@ -34,14 +34,92 @@ pub struct AppCtx {
 }
 
 static CTX: OnceLock<AppCtx> = OnceLock::new();
-static TRAY_STATUS: OnceLock<tauri::menu::MenuItem<tauri::Wry>> = OnceLock::new();
-
-// ---- 桌面端 UI 语言（托盘/引导页文案）----
-fn ui_zh() -> bool {
-    sys_locale::get_locale().map(|l| l.to_lowercase().starts_with("zh")).unwrap_or(false)
+/// 托盘菜单项句柄：切换语言时要逐项改文案，故集中保存
+struct TrayItems {
+    status: tauri::menu::MenuItem<tauri::Wry>,
+    show: tauri::menu::MenuItem<tauri::Wry>,
+    settings: tauri::menu::MenuItem<tauri::Wry>,
+    autostart: tauri::menu::CheckMenuItem<tauri::Wry>,
+    restart: tauri::menu::MenuItem<tauri::Wry>,
+    lang_zh: tauri::menu::CheckMenuItem<tauri::Wry>,
+    lang_en: tauri::menu::CheckMenuItem<tauri::Wry>,
+    quit: tauri::menu::MenuItem<tauri::Wry>,
 }
+
+impl TrayItems {
+    /// 语言变化后重刷文案与勾选（状态项由统计循环在 500ms 内自动改写）
+    fn relabel(&self) {
+        let zh = ui_zh();
+        let _ = self.show.set_text(if zh { "显示主窗口" } else { "Show main window" });
+        let _ = self.settings.set_text(if zh { "设置…" } else { "Settings…" });
+        let _ = self.autostart.set_text(if zh { "开机自动启动" } else { "Launch at login" });
+        let _ = self.restart.set_text(if zh { "重启服务" } else { "Restart service" });
+        let _ = self.quit.set_text(if zh { "退出 PhoneMic" } else { "Quit PhoneMic" });
+        let _ = self.lang_zh.set_checked(zh);
+        let _ = self.lang_en.set_checked(!zh);
+    }
+}
+
+static TRAY_ITEMS: OnceLock<TrayItems> = OnceLock::new();
+/// UI 语言：唯一权威来源。启动时读 data_dir/lang.txt，缺省按系统区域
+static UI_LANG: OnceLock<Mutex<String>> = OnceLock::new();
+
+fn lang_file() -> PathBuf {
+    data_dir().join("lang.txt")
+}
+
+fn load_ui_lang() -> String {
+    if let Ok(s) = std::fs::read_to_string(lang_file()) {
+        let s = s.trim().to_lowercase();
+        if s == "zh" || s == "en" {
+            return s;
+        }
+    }
+    if sys_locale::get_locale().map(|l| l.to_lowercase().starts_with("zh")).unwrap_or(false) {
+        "zh".into()
+    } else {
+        "en".into()
+    }
+}
+
+fn ui_lang() -> String {
+    UI_LANG.get().map(|m| m.lock().clone()).unwrap_or_else(load_ui_lang)
+}
+
+fn ui_zh() -> bool {
+    ui_lang() == "zh"
+}
+
 fn tray_str(zh: &str, en: &str) -> String {
     if ui_zh() { zh.to_string() } else { en.to_string() }
+}
+
+/// 应用语言：写内存 + 落盘 + 刷新托盘文案；`notify` 为 true 时通知 Web UI 重载
+fn apply_lang(app: &tauri::AppHandle, lang: &str, notify: bool) -> tauri::Result<()> {
+    let lang = if lang == "zh" { "zh" } else { "en" };
+    if let Some(m) = UI_LANG.get() {
+        *m.lock() = lang.to_string();
+    }
+    let _ = std::fs::create_dir_all(data_dir());
+    let _ = std::fs::write(lang_file(), lang);
+    if let Some(items) = TRAY_ITEMS.get() {
+        items.relabel();
+    }
+    if notify {
+        let _ = app.emit("lang-changed", lang);
+    }
+    Ok(())
+}
+
+/// Web UI 启动时把自己的解析结果同步过来（托盘与界面因此保持一致）
+#[tauri::command]
+fn set_ui_lang(app: tauri::AppHandle, lang: String) -> Result<(), String> {
+    apply_lang(&app, &lang, false).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn get_ui_lang() -> String {
+    ui_lang()
 }
 
 
@@ -325,7 +403,7 @@ fn reset_remote_pairing() -> Result<String, String> {
     relay::reset_remote_pairing().map_err(|e| format!("{e:#}"))
 }
 
-/// BlackHole 官方安装包（MIT，允许再分发，附 resources/BLACKHOLE-LICENSE）
+/// BlackHole 官方安装包（GPL-3.0，未修改、原样分发；独立程序聚合，合规说明见仓库根 NOTICE）
 #[cfg(target_os = "macos")]
 const BH_PKG: &[u8] = include_bytes!("../resources/BlackHole2ch-0.7.1.pkg");
 
@@ -559,12 +637,15 @@ pub fn run() {
             pairing_qr,
             remote_pairing,
             reset_remote_pairing,
-            install_driver
+            install_driver,
+            get_ui_lang,
+            set_ui_lang
         ])
         .setup(|app| {
             // ---- 菜单栏托盘 ----
-            use tauri::menu::{Menu, MenuItem};
+            use tauri::menu::{CheckMenuItem, Menu, MenuItem, Submenu};
             use tauri::tray::TrayIconBuilder;
+            use tauri_plugin_autostart::ManagerExt;
 
             // 窗口落在已断开的显示器上时拉回主屏（切换显示器/拔线的常见场景）
             if let Some(w) = tauri::Manager::get_webview_window(app, "main") {
@@ -587,11 +668,34 @@ pub fn run() {
                 }
             }
 
+            // 语言偏好：先落内存，后续 tray_str/菜单文案都以此为准
+            let _ = UI_LANG.set(Mutex::new(load_ui_lang()));
+
             let mi_status = MenuItem::with_id(app, "pm_status", tray_str("状态：等待手机", "Status: waiting for phone"), false, None::<&str>)?;
             let mi_show = MenuItem::with_id(app, "pm_show", tray_str("显示主窗口", "Show main window"), true, None::<&str>)?;
+            let mi_settings = MenuItem::with_id(app, "pm_settings", tray_str("设置…", "Settings…"), true, None::<&str>)?;
+            let mi_lang_zh = CheckMenuItem::with_id(app, "pm_lang_zh", "简体中文", ui_zh(), true, None::<&str>)?;
+            let mi_lang_en = CheckMenuItem::with_id(app, "pm_lang_en", "English", !ui_zh(), true, None::<&str>)?;
+            let lang_items: [&dyn tauri::menu::IsMenuItem<tauri::Wry>; 2] = [&mi_lang_zh, &mi_lang_en];
+            let mi_lang = Submenu::with_items(app, "语言 / Language", true, &lang_items)?;
+            let mi_autostart = CheckMenuItem::with_id(
+                app,
+                "pm_autostart",
+                tray_str("开机自动启动", "Launch at login"),
+                app.autolaunch().is_enabled().unwrap_or(false),
+                true,
+                None::<&str>,
+            )?;
             let mi_restart = MenuItem::with_id(app, "pm_restart", tray_str("重启服务", "Restart service"), true, None::<&str>)?;
             let mi_quit = MenuItem::with_id(app, "pm_quit", tray_str("退出 PhoneMic", "Quit PhoneMic"), true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&mi_status, &mi_show, &mi_restart, &mi_quit])?;
+            let menu = Menu::new(app)?;
+            menu.append(&mi_status)?;
+            menu.append(&mi_show)?;
+            menu.append(&mi_settings)?;
+            menu.append(&mi_lang)?;
+            menu.append(&mi_autostart)?;
+            menu.append(&mi_restart)?;
+            menu.append(&mi_quit)?;
 
             let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-template.png"))?;
             TrayIconBuilder::with_id("main")
@@ -605,21 +709,59 @@ pub fn run() {
                         if let Some(w) = tauri::Manager::get_webview_window(app, "main") {
                             let _ = w.show();
                             let _ = w.set_focus();
+                            // 从托盘回到主界面时总是展示二维码
+                            let _ = app.emit("open-main", ());
+                        }
+                    }
+                    "pm_settings" => {
+                        if let Some(w) = tauri::Manager::get_webview_window(app, "main") {
+                            let _ = w.show();
+                            let _ = w.unminimize();
+                            let _ = w.set_focus();
+                            // 让前端切到设置页
+                            let _ = app.emit("open-settings", ());
                         }
                     }
                     "pm_restart" => {
-                        let handle = app.clone();
                         tauri::async_runtime::spawn(async move {
                             if let Err(e) = do_start().await {
                                 tracing::error!("托盘重启失败: {e:#}");
                             }
                         });
                     }
+                    "pm_lang_zh" => {
+                        if let Err(e) = apply_lang(app, "zh", true) {
+                            tracing::error!("切换语言失败: {e:#}");
+                        }
+                    }
+                    "pm_lang_en" => {
+                        if let Err(e) = apply_lang(app, "en", true) {
+                            tracing::error!("切换语言失败: {e:#}");
+                        }
+                    }
+                    "pm_autostart" => {
+                        let mgr = app.autolaunch();
+                        let was = mgr.is_enabled().unwrap_or(false);
+                        if let Err(e) = if was { mgr.disable() } else { mgr.enable() } {
+                            tracing::error!("切换自启动失败: {e:#}");
+                        } else if let Some(item) = TRAY_ITEMS.get() {
+                            let _ = item.autostart.set_checked(!was);
+                        }
+                    }
                     "pm_quit" => app.exit(0),
                     _ => {}
                 })
                 .build(app)?;
-            let _ = TRAY_STATUS.set(mi_status);
+            let _ = TRAY_ITEMS.set(TrayItems {
+                status: mi_status,
+                show: mi_show,
+                settings: mi_settings,
+                autostart: mi_autostart,
+                restart: mi_restart,
+                lang_zh: mi_lang_zh,
+                lang_en: mi_lang_en,
+                quit: mi_quit,
+            });
 
             // 自启动参数：静默启动（只在菜单栏）
             if std::env::args().any(|a| a == "--hidden") {
@@ -646,7 +788,7 @@ pub fn run() {
                     } else {
                         tray_str("状态：已停止", "Status: stopped")
                     };
-                    if let Some(mi) = TRAY_STATUS.get() {
+                    if let Some(mi) = TRAY_ITEMS.get().map(|t| &t.status) {
                         if mi.text().unwrap_or_default() != text {
                             let _ = mi.set_text(text);
                         }
