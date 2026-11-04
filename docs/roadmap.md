@@ -119,7 +119,7 @@
 
 **子任务**
 - [ ] 5.1 历史敏感信息扫描：`gitleaks detect --no-banner`（或 trufflehog）全历史扫描，重点确认 wrangler token、内网 IP（192.168.x）、测试 token 无硬编码
-- [ ] 5.2 确认 `LICENSE`（MIT）存在且覆盖 BlackHole pkg 内嵌（resources/LICENSE 已附）
+- [ ] 5.2 许可证合规复核：`LICENSE`（MIT）只覆盖 PhoneMic 自身代码；BlackHole 安装包按 **GPL-3.0** 独立分发（聚合，非衍生），确认 `NOTICE` 已写明来源、源码获取地址、商标归属 —— NOTICE 已就位，转公开前再核一遍
 - [ ] 5.3 README 顶部加 CI 徽章 + Release 徽章 + 官网链接（依赖 T3 上线后补链）
 - [ ] 5.4 `.github/FUNDING.yml`（可选）与 Issues 模板（bug 报告含系统版本/麦克风型号字段）
 - [ ] 5.5 GitHub Settings → Danger Zone → 转公开

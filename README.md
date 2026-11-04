@@ -12,7 +12,7 @@
 - **Cross-network by default** — pairing goes through a Cloudflare relay (E2E-encrypted); on the same network the phone automatically upgrades to a low-latency direct link
 - **System microphone** — virtual audio device (BlackHole on macOS, embedded one-click installer; VB-CABLE on Windows)
 - **Opus / PCM adaptive streaming**, ~6 ms LAN latency, auto-reconnect, jitter buffer
-- Desktop app built with **Tauri 2** (Rust audio path), relay is a ~150-line Cloudflare Worker (free tier), **self-hostable**
+- Desktop app built with **Tauri 2** (Rust audio path), relay is a ~470-line Cloudflare Worker (free tier), **self-hostable**
 
 **Self-host the relay**: `cd relay-server && docker compose up -d --build`, then point the desktop app at it with `PHONEMIC_RELAY_HOST` — see [docs/self-hosting.md](docs/self-hosting.md)
 
@@ -59,7 +59,12 @@ Relay (Cloudflare): `relay/` — `npm run deploy` (wrangler). Tests: `cargo test
 
 ## License
 
-Core: to be decided (currently private). BlackHole is MIT (bundled with its license); VB-CABLE must be installed by users from the official site.
+**PhoneMic: MIT** — see [LICENSE](LICENSE).
+
+Third-party components (full attributions in [NOTICE](NOTICE)):
+
+- **BlackHole 2ch 0.7.1** — the macOS virtual audio driver by Existential Audio Inc. is licensed under the **GNU GPL v3.0**, *not* MIT. The unmodified installer is bundled at `src-tauri/resources/BlackHole2ch-0.7.1.pkg`; its license text is at `src-tauri/resources/BLACKHOLE-LICENSE`; corresponding source is at <https://github.com/ExistentialAudio/BlackHole>. It is a **separate program**, installed via the system installer and communicating only through the OS audio layer — it is not linked into PhoneMic, so PhoneMic's MIT license is unaffected.
+- **VB-CABLE** — **not** redistributed. The Windows build only opens the vendor's official download page; users install it themselves under VB-Audio's own terms.
 
 ---
 
@@ -69,7 +74,7 @@ Core: to be decided (currently private). BlackHole is MIT (bundled with its lice
 
 - 手机端零安装（网页，安卓/iOS 通用）；默认走云端中继（免费层），同一网络自动切换局域网直连（~6ms）
 - 桌面端 Tauri 2（Rust 音频链路：解码 → 自适应抖动缓冲 → 虚拟麦克风）
-- 中继 ~150 行 Cloudflare Worker，支持 Docker 自托管；协议与设计文档见 `docs/`
+- 中继约 470 行 TypeScript（Cloudflare Worker + Durable Objects），另附同协议的 Rust 自托管实现（`relay-server/`，Docker 部署）；协议与设计文档见 `docs/`
 - **自托管中继**：`cd relay-server && docker compose up -d --build`，桌面端设 `PHONEMIC_RELAY_HOST` 即可切换，见 [docs/self-hosting.md](docs/self-hosting.md)
 - 商业模式：开源核心 + 官方免费中继 + 自托管（详见路线图）
 

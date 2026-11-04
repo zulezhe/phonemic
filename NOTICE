@@ -1,0 +1,76 @@
+PhoneMic — Third-party notices
+==============================
+
+PhoneMic itself is licensed under the MIT License. See the LICENSE file.
+
+This product bundles or links to the third-party components listed below. Each
+component remains under its own license, and nothing in PhoneMic's MIT license
+alters those terms.
+
+
+--------------------------------------------------------------------------------
+1. BlackHole 2ch 0.7.1 — bundled (macOS only)
+--------------------------------------------------------------------------------
+
+    Virtual audio driver for macOS.
+    Copyright (c) 2019-2026 Existential Audio Inc. All rights reserved.
+
+    License:       GNU General Public License, version 3.0 (GPL-3.0)
+    License text:  src-tauri/resources/BLACKHOLE-LICENSE
+    Bundled file:  src-tauri/resources/BlackHole2ch-0.7.1.pkg
+    Source code:   https://github.com/ExistentialAudio/BlackHole  (tag v0.7.1)
+
+Distribution notes:
+
+  * The installer is redistributed unmodified, exactly as published by
+    Existential Audio Inc. No changes have been made to it.
+
+  * BlackHole is a separate and independent program. PhoneMic installs it
+    through the operating system's package installer and interacts with it
+    only through the Core Audio device interface. It is not linked with,
+    compiled into, or derived from PhoneMic. Its distribution alongside
+    PhoneMic is therefore mere aggregation within the meaning of GPL-3.0
+    section 5, and PhoneMic's own source remains under the MIT license.
+
+  * In accordance with GPL-3.0 section 6(d), the Corresponding Source is
+    available from the copyright holder at the URL above (tag v0.7.1), at no
+    charge. PhoneMic makes no modifications to BlackHole, so the published
+    source and the bundled binary correspond exactly.
+
+  * "BlackHole" and its logo are trademarks of Existential Audio Inc. The name
+    is used here only to identify the component. PhoneMic is not affiliated
+    with, endorsed by, or sponsored by Existential Audio Inc.
+
+
+--------------------------------------------------------------------------------
+2. VB-CABLE — NOT bundled (Windows only)
+--------------------------------------------------------------------------------
+
+    Virtual audio cable driver for Windows, by VB-Audio Software.
+    https://vb-audio.com/Cable/
+
+This component is NOT distributed with PhoneMic. The Windows build only opens
+the vendor's official download page; the user obtains and installs it directly
+from VB-Audio, under VB-Audio's own terms, including any donation or licensing
+requirement they set. PhoneMic is not affiliated with VB-Audio.
+
+
+--------------------------------------------------------------------------------
+3. Other dependencies
+--------------------------------------------------------------------------------
+
+Rust crates are enumerated in src-tauri/Cargo.lock. npm packages are enumerated
+in package-lock.json and phone/package-lock.json. Each package ships its own
+license with its distribution; the lockfiles are the authoritative list of
+exactly which versions are used in a given build.
+
+No GPL-licensed or otherwise copyleft-licensed dependency is linked into the
+PhoneMic binary other than the BlackHole installer described in section 1, which
+is aggregated rather than linked.
+
+
+--------------------------------------------------------------------------------
+Contact
+--------------------------------------------------------------------------------
+
+    support@dyzyzj.top
