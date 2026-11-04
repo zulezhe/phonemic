@@ -3,178 +3,322 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PhoneMic — Use your phone as your PC microphone</title>
-<meta name="description" content="Turn your phone into a system-wide microphone for your computer. Zero install on the phone, works across networks, end-to-end encrypted. Free & open source.">
-<meta property="og:title" content="PhoneMic — Your phone as a PC microphone">
-<meta property="og:description" content="Scan a QR code and talk. Zero install on the phone, end-to-end encrypted, works on any network.">
+<title>PhoneMic — Use your phone as your Mac's microphone</title>
+<meta name="description" content="Scan a QR code and your phone becomes a system-wide microphone for your Mac. Nothing to install on the phone, works across networks, end-to-end encrypted. Free and open source.">
+<link rel="canonical" href="https://site.dyzyzj.top/">
+<meta property="og:site_name" content="PhoneMic">
+<meta property="og:title" content="PhoneMic — Your phone is your microphone">
+<meta property="og:description" content="Scan a QR code and start talking. Zero install on the phone, works across networks, end-to-end encrypted.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://site.dyzyzj.top/">
+<meta property="og:image" content="https://site.dyzyzj.top/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PhoneMic — Your phone is your microphone">
+<meta name="twitter:description" content="Scan a QR code and start talking. Zero install on the phone, end-to-end encrypted.">
+<meta name="twitter:image" content="https://site.dyzyzj.top/assets/og.png">
+<meta name="theme-color" content="#2f6fed">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<style>
-  :root{--ink:#16181d;--sub:#5b6270;--line:#e6e8ec;--brand:#2f6fed;--brand-ink:#1d54c0;--bg:#fff;--soft:#f6f8fb;--ok:#0a8f4e}
-  *{box-sizing:border-box;margin:0}
-  body{font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg)}
-  a{color:var(--brand);text-decoration:none}
-  .wrap{max-width:880px;margin:0 auto;padding:0 22px}
-  header{border-bottom:1px solid var(--line)}
-  .nav{display:flex;align-items:center;gap:10px;padding:16px 0}
-  .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;color:var(--ink)}
-  .logo svg{width:26px;height:26px;stroke:var(--brand);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  .nav .spacer{flex:1}
-  .nav a{font-size:14.5px;color:var(--sub)}
-  .hero{padding:64px 0 56px;text-align:center}
-  .hero h1{font-size:clamp(30px,5.2vw,46px);line-height:1.18;letter-spacing:-.5px;font-weight:800}
-  .hero p.sub{color:var(--sub);font-size:clamp(16px,2.4vw,19px);margin:16px auto 30px;max-width:560px}
-  .cta{display:inline-flex;align-items:center;gap:9px;background:var(--brand);color:#fff;padding:14px 30px;border-radius:11px;font-size:17px;font-weight:600;transition:.15s}
-  .cta:hover{background:var(--brand-ink)}
-  .cta svg{width:19px;height:19px;fill:#fff}
-  .cta-hint{display:block;margin-top:12px;font-size:13px;color:var(--sub)}
-  .badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--sub);background:var(--soft);border:1px solid var(--line);border-radius:99px;padding:5px 13px;margin-bottom:22px}
-  .badge b{color:var(--ok);font-weight:600}
-  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;padding:8px 0 40px}
-  .step{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:24px 20px;text-align:left}
-  .step .n{display:inline-flex;width:30px;height:30px;border-radius:99px;background:var(--brand);color:#fff;font-weight:700;align-items:center;justify-content:center;font-size:15px;margin-bottom:12px}
-  .step h3{font-size:16.5px;margin-bottom:6px}
-  .step p{font-size:14px;color:var(--sub)}
-  h2.sec{font-size:26px;letter-spacing:-.3px;margin:44px 0 6px;text-align:center}
-  p.sec-sub{color:var(--sub);text-align:center;margin-bottom:26px;font-size:15px}
-  .feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;padding-bottom:8px}
-  .feat{border:1px solid var(--line);border-radius:14px;padding:20px}
-  .feat h3{font-size:16px;margin-bottom:6px}
-  .feat p{font-size:14px;color:var(--sub)}
-  .faq{max-width:680px;margin:10px auto 0;padding-bottom:30px}
-  .faq details{border-bottom:1px solid var(--line);padding:14px 4px}
-  .faq summary{cursor:pointer;font-weight:600;font-size:15.5px}
-  .faq p{color:var(--sub);font-size:14.5px;padding:10px 2px 2px}
-  .privacy{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:26px;margin:18px 0 8px}
-  .privacy h3{font-size:17px;margin-bottom:8px}
-  .privacy p,.privacy li{font-size:14.5px;color:var(--sub)}
-  .privacy ul{padding-left:20px;margin-top:6px}
-  footer{border-top:1px solid var(--line);margin-top:44px;padding:26px 0 40px;color:var(--sub);font-size:14px;display:flex;gap:18px;flex-wrap:wrap;align-items:center}
-  .lang{cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:3px 10px;font-size:13px;color:var(--sub);background:var(--bg)}
-  [data-i18n]{transition:opacity .12s}
-</style>
+<link rel="stylesheet" href="assets/site.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "PhoneMic",
+  "applicationCategory": "MultimediaApplication",
+  "applicationSubCategory": "Audio",
+  "operatingSystem": "macOS 12 or later",
+  "description": "Turns a phone into a system-wide microphone for a computer: scan a QR code, allow the microphone in the browser, and pick PhoneMic as the input device in any app. Audio is end-to-end encrypted.",
+  "url": "https://site.dyzyzj.top/",
+  "downloadUrl": "https://github.com/zulezhe/phonemic/releases/latest",
+  "softwareVersion": "0.1.0",
+  "license": "https://opensource.org/licenses/MIT",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Organization", "name": "PhoneMic", "url": "https://site.dyzyzj.top/" }
+}
+</script>
 </head>
 <body>
-<header>
+
+<!-- ============================================================
+     CONFIG — 需要替换的链接集中在这一段，改这里即可：
+     1. 下载链接      github.com/zulezhe/phonemic/releases/latest  (仓库当前为 private，转公开后生效)
+     2. Windows 商店  ［待上架］上架后把 .pc.soon 的按钮改成 <a class="btn" href="ms-windows-store://...">
+     3. 联系邮箱      support@dyzyzj.top  (全站出现 4 处: index / support / privacy / terms)
+     ============================================================ -->
+
+<header class="site">
   <div class="wrap nav">
-    <span class="logo"><svg viewBox="0 0 24 24"><path d="M12 15.5a4 4 0 0 0 4-4v-5a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4Z"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>PhoneMic</span>
+    <a class="brand" href="./" aria-label="PhoneMic">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a4 4 0 0 0 4-4v-5a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4Z"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>
+      PhoneMic
+    </a>
     <span class="spacer"></span>
-    <a href="https://github.com/zulezhe/phonemic">GitHub</a>
-    <a href="#faq" data-i18n="navFaq">FAQ</a>
-    <a href="#privacy" data-i18n="navPrivacy">Privacy</a>
-    <button class="lang" id="langBtn">中文</button>
+    <a class="link hide-sm" href="#features" data-i18n="navFeat">Features</a>
+    <a class="link hide-sm" href="#faq" data-i18n="navFaq">FAQ</a>
+    <a class="link" href="support.html" data-i18n="navHelp">Help</a>
+    <a class="link hide-sm" href="https://github.com/zulezhe/phonemic">GitHub</a>
+    <button class="lang" type="button">中文</button>
   </div>
 </header>
 
-<div class="wrap">
-  <section class="hero">
-    <span class="badge"><b>●</b>&nbsp;<span data-i18n="badge">Free & open source</span></span>
-    <h1 data-i18n="h1">Use your phone as your<br>PC microphone</h1>
-    <p class="sub" data-i18n="sub">No mic? Scan a QR code and talk. Nothing to install on the phone — works on any network, end-to-end encrypted.</p>
-    <a class="cta" href="https://github.com/zulezhe/phonemic/releases/latest">
-      <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4.5-4.5M12 15 7.5 10.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-      <span data-i18n="download">Download for macOS</span>
-    </a>
-    <span class="cta-hint" data-i18n="downloadHint">Free · macOS 12+ · Windows coming soon · Source on GitHub</span>
-  </section>
+<main>
+  <div class="wrap">
+    <section class="hero">
+      <div>
+        <span class="badge"><span class="dot"></span><span data-i18n="badge">Free &amp; open source · MIT</span></span>
+        <h1 data-i18n="h1">Your phone is<br>your microphone</h1>
+        <p class="lead" data-i18n="lead">Scan a QR code on your Mac and start talking. Nothing to install on the phone — works across networks, end-to-end encrypted.</p>
+        <div class="cta-row">
+          <a class="btn" href="https://github.com/zulezhe/phonemic/releases/latest">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15 7.5 10.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            <span data-i18n="dlMac">Download for macOS</span>
+          </a>
+          <a class="btn ghost" href="#how">
+            <span data-i18n="howBtn">How it works</span>
+          </a>
+        </div>
+        <span class="hint" data-i18n="hint"><b>Free</b> · macOS 12+ · ~5 MB · MIT licensed</span>
+      </div>
+      <div class="device" aria-hidden="true">
+        <div class="monitor">
+          <div class="qi">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <div class="mlines"><i></i><i></i><i></i></div>
+        </div>
+        <div class="wave"><span></span><span></span><span></span></div>
+        <div class="phone">
+          <div class="bars"><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+      </div>
+    </section>
 
-  <h2 class="sec" data-i18n="stepsTitle">Three steps, ten seconds</h2>
-  <p class="sec-sub" data-i18n="stepsSub">From "no microphone" to talking in your favorite apps</p>
-  <section class="steps">
-    <div class="step"><span class="n">1</span><h3 data-i18n="s1t">Scan the QR code</h3><p data-i18n="s1d">Open the desktop app and point your phone camera at the code. Any browser works — no app to install.</p></div>
-    <div class="step"><span class="n">2</span><h3 data-i18n="s2t">Allow the microphone</h3><p data-i18n="s2d">One tap in the browser. Your phone is now a system-wide microphone.</p></div>
-    <div class="step"><span class="n">3</span><h3 data-i18n="s3t">Talk anywhere</h3><p data-i18n="s3d">Dictation, Zoom, OBS, Discord — pick "PhoneMic" as the input in any app on your computer.</p></div>
-  </section>
+    <section class="band" id="download">
+      <h2 class="sec" data-i18n="platTitle">Get PhoneMic</h2>
+      <p class="sub" data-i18n="platSub">Native app · nothing runs in the cloud except an encrypted relay you can self-host</p>
+      <div class="plat">
+        <div class="pc">
+          <div class="os">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.4 12.7c0-2.2 1.8-3.3 1.9-3.4-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.7.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.5 0-2.8.9-3.6 2.2-1.5 2.6-.4 6.5 1.1 8.6.7 1 1.6 2.2 2.7 2.2 1.1 0 1.5-.7 2.8-.7s1.6.7 2.8.7c1.2 0 1.9-1.1 2.6-2.1.8-1.2 1.2-2.4 1.2-2.4-.1 0-2.2-.9-2.2-3.4ZM14.3 5.9c.6-.7 1-1.7.9-2.7-.9 0-2 .6-2.6 1.3-.6.6-1.1 1.7-.9 2.6 1 .1 2-.5 2.6-1.2Z"/></svg>
+            macOS
+          </div>
+          <div class="meta" data-i18n="macMeta">macOS 12 or later · signed &amp; notarized</div>
+          <a class="btn" href="https://github.com/zulezhe/phonemic/releases/latest">
+            <span data-i18n="dlDmg">Download .dmg</span>
+          </a>
+        </div>
+        <div class="pc soon">
+          <div class="os">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.6 10.3 4.6v7.1H3V5.6Zm0 12.8 7.3 1v-7H3v6Zm8.4 1.2L21 21V12.4h-9.6v7.2Zm0-14.4v7.5H21V3l-9.6 2.2Z"/></svg>
+            Windows
+            <span class="tag" data-i18n="soonTag">Coming soon</span>
+          </div>
+          <div class="meta" data-i18n="winMeta">Windows 10 / 11 · Microsoft Store</div>
+          <button class="btn ghost" type="button" disabled data-i18n="winBtn">Not yet available</button>
+        </div>
+      </div>
+      <span class="hint" data-i18n="platHint">The macOS build installs the virtual microphone (the open-source BlackHole driver) with one click. On Windows you install VB-CABLE yourself — we link you to the official download.</span>
+    </section>
 
-  <h2 class="sec" data-i18n="featTitle">Why PhoneMic</h2>
-  <p class="sec-sub" data-i18n="featSub">Built for the moment your mic breaks — or the one you never had</p>
-  <section class="feats">
-    <div class="feat"><h3 data-i18n="f1t">Zero install on the phone</h3><p data-i18n="f1d">The phone side is a web page. Scan, allow, talk. Android and iOS both work.</p></div>
-    <div class="feat"><h3 data-i18n="f2t">Works on any network</h3><p data-i18n="f2d">Phone on cellular, PC on Wi-Fi? No problem. On the same network it silently switches to a ~6 ms direct link.</p></div>
-    <div class="feat"><h3 data-i18n="f3t">End-to-end encrypted</h3><p data-i18n="f3d">Keys are derived from your pairing code. The relay only ever sees ciphertext. No account, no telemetry.</p></div>
-    <div class="feat"><h3 data-i18n="f4t">Tiny & open source</h3><p data-i18n="f4d">A ~5 MB native app (Tauri + Rust). MIT licensed — you can even self-host the relay with one Docker command.</p></div>
-  </section>
+    <section class="band" id="how">
+      <h2 class="sec" data-i18n="howTitle">Three steps, ten seconds</h2>
+      <p class="sub" data-i18n="howSub">From “I have no microphone” to talking in the app you already use</p>
+      <div class="steps">
+        <div class="step">
+          <span class="n">1</span>
+          <h3 data-i18n="s1t">Scan the QR code</h3>
+          <p data-i18n="s1d">Open PhoneMic on your Mac and point your phone camera at the code on screen.</p>
+        </div>
+        <div class="step">
+          <span class="n">2</span>
+          <h3 data-i18n="s2t">Tap Allow</h3>
+          <p data-i18n="s2d">The phone side is a web page, so one tap in the browser is the whole installation.</p>
+        </div>
+        <div class="step">
+          <span class="n">3</span>
+          <h3 data-i18n="s3t">Talk anywhere</h3>
+          <p data-i18n="s3d">In any app on your computer, choose PhoneMic as the input device. Done.</p>
+        </div>
+      </div>
+    </section>
 
-  <section class="privacy" id="privacy">
-    <h3 data-i18n="pvTitle">Privacy, in plain words</h3>
-    <p data-i18n="pvLead">Your voice is the payload — so the design assumes zero trust in every server:</p>
-    <ul>
-      <li data-i18n="pv1">The pairing code on your screen is combined (HKDF-SHA256) with an ECDH handshake to derive the session key.</li>
-      <li data-i18n="pv2">All audio is AES-256-GCM encrypted on your phone and decrypted on your computer. The relay forwards ciphertext it cannot read.</li>
-      <li data-i18n="pv3">No account, no analytics, no third-party scripts on the connection page. The desktop app is fully open source.</li>
-    </ul>
-  </section>
+    <section class="band" id="features">
+      <h2 class="sec" data-i18n="featTitle">Why PhoneMic</h2>
+      <p class="sub" data-i18n="featSub">Built for the moment your microphone breaks — or the one you never had</p>
+      <div class="grid">
+        <div class="card">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 5.5h3"/></svg>
+          <h3 data-i18n="f1t">Zero install on the phone</h3>
+          <p data-i18n="f1d">The phone side is a web page served from your desktop app. No App Store, no APK, no account. iOS and Android both work.</p>
+        </div>
+        <div class="card">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M6.5 6.5a7.8 7.8 0 0 0 0 11M17.5 6.5a7.8 7.8 0 0 1 0 11M3.5 3.5a12 12 0 0 0 0 17M20.5 3.5a12 12 0 0 1 0 17"/></svg>
+          <h3 data-i18n="f2t">Works on any network</h3>
+          <p data-i18n="f2d">Phone on cellular, computer on Wi-Fi? It goes through an encrypted relay. On the same network it silently switches to a ~6 ms direct link.</p>
+        </div>
+        <div class="card">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+          <h3 data-i18n="f3t">End-to-end encrypted</h3>
+          <p data-i18n="f3d">Keys are derived from the pairing code and an ECDH handshake. The relay only ever forwards ciphertext it cannot read.</p>
+        </div>
+        <div class="card">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18.5 3.5 12 9 5.5M15 5.5 20.5 12 15 18.5"/></svg>
+          <h3 data-i18n="f4t">Small and open source</h3>
+          <p data-i18n="f4d">A ~5 MB native app built with Tauri and Rust, MIT licensed. The relay is open source too — self-host it with one Docker command.</p>
+        </div>
+      </div>
+    </section>
 
-  <h2 class="sec" id="faq" data-i18n="faqTitle">FAQ</h2>
-  <section class="faq">
-    <details open><summary data-i18n="q1">What's the latency?</summary><p data-i18n="a1">About 6 ms round-trip on the same network (direct link), 30–120 ms via the cloud relay across networks. Tuned for voice input and calls.</p></details>
-    <details><summary data-i18n="q2">Does it work when the phone screen locks?</summary><p data-i18n="a2">The web page holds a wake lock while streaming, but iOS stops capture when you switch away. For long sessions keep the page in the foreground — it's designed for short bursts like dictation.</p></details>
-    <details><summary data-i18n="q3">Do I need to install a driver?</summary><p data-i18n="a3">Yes — apps need a virtual microphone device. The macOS app installs BlackHole (MIT) with one click. On Windows we guide you to VB-CABLE.</p></details>
-    <details><summary data-i18n="q4">Can I run my own relay?</summary><p data-i18n="a4">Yes. The relay is open source and ships as a Docker image: <code>cd relay-server && docker compose up -d</code>. Point the desktop app at it with one environment variable. See the self-hosting guide.</p></details>
-    <details><summary data-i18n="q5">Windows version?</summary><p data-i18n="a5">The core is cross-platform (Rust + Tauri). A Windows build with VB-CABLE support is on the roadmap.</p></details>
-  </section>
-</div>
+    <section class="band">
+      <div class="privacy-box">
+        <h3 data-i18n="pvTitle">Privacy, in plain words</h3>
+        <p data-i18n="pvLead">Your voice is the payload, so the design assumes zero trust in every server:</p>
+        <ul>
+          <li data-i18n="pv1">Audio is encrypted with AES-256-GCM on your phone and decrypted on your computer. Nothing in between can listen.</li>
+          <li data-i18n="pv2">No account, no analytics, no advertising, no third-party scripts. We never receive your audio.</li>
+          <li data-i18n="pv3">Recordings are not stored anywhere — the stream is live and discarded as it plays.</li>
+        </ul>
+        <a class="more" href="privacy.html" data-i18n="pvMore">Read the full privacy policy →</a>
+      </div>
+    </section>
 
-<footer><div class="wrap" style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
-  <span>© 2026 PhoneMic</span>
-  <a href="https://github.com/zulezhe/phonemic">GitHub</a>
-  <a href="https://github.com/zulezhe/phonemic/releases">Releases</a>
-  <a href="https://github.com/zulezhe/phonemic/blob/main/LICENSE">MIT License</a>
-  <span style="flex:1"></span>
-  <span>relay.dyzyzj.top</span>
-</div></footer>
+    <section class="band" id="faq">
+      <h2 class="sec" data-i18n="faqTitle">Questions</h2>
+      <p class="sub" data-i18n="faqSub">More answers in the <a href="support.html">help section</a></p>
+      <div class="faq">
+        <details open>
+          <summary data-i18n="q1">What is the latency?</summary>
+          <p class="a" data-i18n="a1">About 6 ms round-trip on the same network, 30–120 ms through the cloud relay. It is tuned for voice input and calls, not for music production.</p>
+        </details>
+        <details>
+          <summary data-i18n="q2">Do I need to install a driver?</summary>
+          <p class="a" data-i18n="a2">Yes — other apps need a virtual input device to select. The macOS app installs BlackHole for you with one click (it asks for your password once). On Windows, install VB-CABLE from the official VB-Audio site; PhoneMic links you there and detects it afterwards.</p>
+        </details>
+        <details>
+          <summary data-i18n="q3">Does it work when the phone screen locks?</summary>
+          <p class="a" data-i18n="a3">The page keeps the screen awake while streaming, but iOS stops microphone capture when you leave the browser. Keep the page in the foreground for longer sessions — it is designed for dictation-length bursts.</p>
+        </details>
+        <details>
+          <summary data-i18n="q4">Is my audio uploaded or stored?</summary>
+          <p class="a" data-i18n="a4">No. Audio is end-to-end encrypted and relayed in real time; neither the relay nor we can decrypt it, and nothing is written to disk.</p>
+        </details>
+        <details>
+          <summary data-i18n="q5">Which phones and browsers are supported?</summary>
+          <p class="a" data-i18n="a5">Any modern browser with microphone access over HTTPS — Safari and Chrome on iOS 15+, Chrome on Android 8+. No companion app is needed.</p>
+        </details>
+        <details>
+          <summary data-i18n="q6">Do I need an account?</summary>
+          <p class="a" data-i18n="a6">No. There is no sign-up, no login and no license key. Pairing happens by scanning a code from your own computer.</p>
+        </details>
+        <details>
+          <summary data-i18n="q7">Can I run my own relay?</summary>
+          <p class="a" data-i18n="a7">Yes. The relay ships as a Docker image: <code>cd relay-server &amp;&amp; docker compose up -d</code>. Point the desktop app at your instance with one environment variable. See the self-hosting guide in the repository.</p>
+        </details>
+        <details>
+          <summary data-i18n="q8">Is there a Windows version?</summary>
+          <p class="a" data-i18n="a8">Not publicly yet. The core is cross-platform, and the Windows build is being prepared for the Microsoft Store. It appears on this page as soon as it is available.</p>
+        </details>
+      </div>
+    </section>
+  </div>
+</main>
 
+<footer class="site">
+  <div class="wrap">
+    <div class="fgrid">
+      <div class="fcol">
+        <b data-i18n="ftProduct">Product</b>
+        <a href="#download" data-i18n="ftDownload">Download</a>
+        <a href="#features" data-i18n="ftFeat">Features</a>
+        <a href="#faq" data-i18n="ftFaq">FAQ</a>
+      </div>
+      <div class="fcol">
+        <b data-i18n="ftRes">Resources</b>
+        <a href="support.html" data-i18n="ftHelp">Help &amp; support</a>
+        <a href="https://github.com/zulezhe/phonemic" data-i18n="ftSource">Source code</a>
+        <a href="https://github.com/zulezhe/phonemic/releases" data-i18n="ftRel">Release notes</a>
+      </div>
+      <div class="fcol">
+        <b data-i18n="ftLegal">Legal</b>
+        <a href="privacy.html" data-i18n="ftPriv">Privacy policy</a>
+        <a href="terms.html" data-i18n="ftTerms">Terms of use</a>
+        <a href="https://opensource.org/licenses/MIT" data-i18n="ftLic">MIT license</a>
+      </div>
+      <div class="fcol">
+        <b data-i18n="ftContact">Contact</b>
+        <a href="mailto:support@dyzyzj.top">support@dyzyzj.top</a>
+        <a href="support.html" data-i18n="ftReport">Report a problem</a>
+      </div>
+    </div>
+    <div class="fbot">
+      <span>© <span id="year">2026</span> PhoneMic</span>
+      <span class="spacer"></span>
+      <span data-i18n="ftMadeWarn">Not affiliated with Apple or Microsoft</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
 <script>
-const I18N = {
-  en: {},
-  zh: {
-    badge: "免费且开源",
-    navFaq: "常见问题", navPrivacy: "隐私",
-    h1: "把手机变成<br>电脑的麦克风",
-    sub: "没有麦克风？扫个码就能说。手机端零安装，跨网络可用，端到端加密。",
-    download: "下载 macOS 版", downloadHint: "免费 · macOS 12+ · Windows 开发中 · 源码在 GitHub",
-    stepsTitle: "三步搞定，十秒上手", stepsSub: "从“没有麦克风”到你常用的应用里开口说话",
-    s1t: "扫码", s1d: "打开桌面端，用手机相机扫屏幕上的二维码。任何浏览器都行，无需装 App。",
-    s2t: "授权麦克风", s2d: "在浏览器里点一下允许，手机即刻成为系统级麦克风。",
-    s3t: "随处开口", s3d: "语音输入、Zoom、OBS、Discord——在电脑任意应用里选择 PhoneMic 作为输入。",
-    featTitle: "为什么选 PhoneMic", featSub: "为“麦克风坏了”或“根本没有”的那一刻而生",
-    f1t: "手机端零安装", f1d: "手机侧就是一个网页。扫码、授权、开说。安卓和 iOS 通用。",
-    f2t: "跨网络可用", f2d: "手机在蜂窝、电脑在 Wi-Fi？没问题。同网络时自动切换到约 6ms 的直连。",
-    f3t: "端到端加密", f3d: "密钥由配对码派生，中继只见密文。无账号、无遥测。",
-    f4t: "小巧开源", f4d: "约 5MB 的原生应用（Tauri + Rust）。MIT 协议，中继可用一条 Docker 命令自托管。",
-    pvTitle: "隐私，用大白话说",
-    pvLead: "你的声音就是传输的内容——所以设计上不信任任何服务器：",
-    pv1: "屏幕上的配对码与 ECDH 握手经 HKDF-SHA256 派生会话密钥。",
-    pv2: "所有音频在手机上以 AES-256-GCM 加密、在电脑上解密。中继转发的只是它无法读懂的密文。",
-    pv3: "无账号、无统计、连接页无第三方脚本。桌面端完全开源。",
-    faqTitle: "常见问题",
-    q1: "延迟怎么样？", a1: "同网络直连往返约 6ms；跨网络走云端中继约 30–120ms。为语音输入和通话场景调优。",
-    q2: "手机锁屏后会断吗？", a2: "推流时网页会保持屏幕常亮，但 iOS 切后台会停止采集。长会话请保持页面在前台——它为听写这类短场景设计。",
-    q3: "需要装驱动吗？", a3: "需要——应用需要一个虚拟麦克风设备。macOS 版一键安装 BlackHole（MIT），Windows 版会引导安装 VB-CABLE。",
-    q4: "可以自建中继吗？", a4: "可以。中继开源并提供了 Docker 镜像：cd relay-server && docker compose up -d。桌面端用一个环境变量即可指向自建实例，详见自托管指南。",
-    q5: "有 Windows 版吗？", a5: "核心完全跨平台（Rust + Tauri），支持 VB-CABLE 的 Windows 版在路线图上。",
+initSite({
+  titles: {
+    en: "PhoneMic — Use your phone as your Mac's microphone",
+    zh: "PhoneMic — 把手机变成电脑的麦克风"
+  },
+  desc: {
+    en: "Scan a QR code and your phone becomes a system-wide microphone for your Mac. Nothing to install on the phone, works across networks, end-to-end encrypted. Free and open source.",
+    zh: "扫个二维码，手机就能变成电脑的系统级麦克风。手机端零安装、跨网络可用、端到端加密。免费开源。"
+  },
+  i18n: {
+    en: {},
+    zh: {
+      navFeat: "功能", navFaq: "常见问题", navHelp: "帮助",
+      badge: "免费开源 · MIT 协议",
+      h1: "你的手机<br>就是麦克风",
+      lead: "在 Mac 上扫个二维码就能开口说话。手机端零安装，跨网络可用，端到端加密。",
+      dlMac: "下载 macOS 版", howBtn: "怎么用",
+      hint: "<b>免费</b> · macOS 12+ · 约 5 MB · MIT 协议",
+      platTitle: "获取 PhoneMic", platSub: "原生应用；除了一个可自托管的加密中继，什么都不经过云端",
+      macMeta: "macOS 12 或更高 · 已签名并公证",
+      dlDmg: "下载 .dmg",
+      soonTag: "即将上架", winMeta: "Windows 10 / 11 · 微软商店", winBtn: "暂未开放",
+      platHint: "macOS 版会一键帮你装好虚拟麦克风（开源 BlackHole 驱动）。Windows 上需要你自己装 VB-CABLE —— 我们会给你官方下载地址。",
+      howTitle: "三步，十秒", howSub: "从「我没有麦克风」到你已经在用的应用里开口",
+      s1t: "扫码", s1d: "在 Mac 上打开 PhoneMic，用手机相机对准屏幕上的二维码。",
+      s2t: "点一下「允许」", s2d: "手机侧就是一个网页，在浏览器里点一次授权，安装就结束了。",
+      s3t: "随处开口", s3d: "在电脑任意应用里把输入设备选成 PhoneMic，完成。",
+      featTitle: "为什么是 PhoneMic", featSub: "为「麦克风坏了」或「压根没买」的那一刻而做",
+      f1t: "手机端零安装", f1d: "手机侧是由桌面端提供的网页。不进应用商店、不装 APK、不用注册。iOS 和安卓都能用。",
+      f2t: "跨网络可用", f2d: "手机走蜂窝、电脑连 Wi-Fi？走加密中继。同一个网络时自动切成约 6ms 的直连。",
+      f3t: "端到端加密", f3d: "密钥由配对码和 ECDH 握手派生。中继转发的只是它解不开的密文。",
+      f4t: "小巧开源", f4d: "约 5MB 的原生应用，Tauri + Rust 构建，MIT 协议。中继也开源，一条 Docker 命令就能自托管。",
+      pvTitle: "隐私，用大白话说",
+      pvLead: "你的声音就是传输的内容，所以设计上不信任任何服务器：",
+      pv1: "音频在手机上用 AES-256-GCM 加密、在电脑上解密，中间任何一方都听不到。",
+      pv2: "无账号、无统计、无广告、无第三方脚本。我们从不接收你的音频。",
+      pv3: "任何地方都不保存录音 —— 音频是实时流，播放完即丢弃。",
+      pvMore: "阅读完整隐私政策 →",
+      faqTitle: "常见问题", faqSub: "更多解答见<a href=\"support.html\">帮助页</a>",
+      q1: "延迟怎么样？", a1: "同一网络直连往返约 6ms，走云端中继约 30–120ms。它是为语音输入和通话调优的，不适合音乐制作。",
+      q2: "需要装驱动吗？", a2: "需要 —— 其他应用需要一个可选的虚拟输入设备。macOS 版会一键帮你装好 BlackHole（会请求一次密码）。Windows 上请从 VB-Audio 官网安装 VB-CABLE，PhoneMic 会给出链接并在装好后自动识别。",
+      q3: "手机锁屏会断吗？", a3: "推流时页面会保持屏幕常亮，但 iOS 在离开浏览器后会停止采集。长会话请让页面留在前台 —— 它的设计目标是听写这类短时使用。",
+      q4: "音频会被上传或保存吗？", a4: "不会。音频端到端加密并实时转发，中继和我们都无法解密，也不会写入磁盘。",
+      q5: "支持哪些手机和浏览器？", a5: "任何支持 HTTPS 下麦克风权限的现代浏览器 —— iOS 15+ 的 Safari 和 Chrome、安卓 8+ 的 Chrome。不需要装任何配套 App。",
+      q6: "需要注册账号吗？", a6: "不需要。没有注册、没有登录、没有激活码。配对就是扫你自己电脑上的一个码。",
+      q7: "可以自建中继吗？", a7: "可以。中继以 Docker 镜像形式提供：<code>cd relay-server &amp;&amp; docker compose up -d</code>，桌面端用一个环境变量就能指向你的实例。详见仓库里的自托管文档。",
+      q8: "有 Windows 版吗？", a8: "还未公开发布。核心是跨平台的，Windows 版正在准备上架微软商店。一旦可用就会出现在本页。",
+      ftProduct: "产品", ftDownload: "下载", ftFeat: "功能", ftFaq: "常见问题",
+      ftRes: "资源", ftHelp: "帮助与支持", ftSource: "源代码", ftRel: "更新日志",
+      ftLegal: "法务", ftPriv: "隐私政策", ftTerms: "使用条款", ftLic: "MIT 协议",
+      ftContact: "联系", ftReport: "报告问题",
+      ftMadeWarn: "与 Apple、Microsoft 无关联"
+    }
   }
-};
-const apply = (lang) => {
-  const dict = I18N[lang] ?? {};
-  for (const el of document.querySelectorAll("[data-i18n]")) {
-    const v = dict[el.dataset.i18n];
-    if (v) el.innerHTML = v;
-  }
-  document.documentElement.lang = lang;
-  document.title = lang === "zh" ? "PhoneMic — 把手机变成电脑的麦克风" : "PhoneMic — Use your phone as your PC microphone";
-  document.querySelector('meta[name="description"]').content = lang === "zh"
-    ? "把手机变成电脑的系统级麦克风。手机端零安装、跨网络可用、端到端加密。免费开源。"
-    : "Turn your phone into a system-wide microphone for your computer. Zero install on the phone, works across networks, end-to-end encrypted. Free & open source.";
-  document.getElementById("langBtn").textContent = lang === "zh" ? "English" : "中文";
-};
-let lang = new URLSearchParams(location.search).get("lang")
-  ?? ((navigator.language || "en").toLowerCase().startsWith("zh") ? "zh" : "en");
-apply(lang);
-document.getElementById("langBtn").addEventListener("click", () => {
-  lang = lang === "zh" ? "en" : "zh";
-  history.replaceState(null, "", "?lang=" + lang);
-  apply(lang);
 });
 </script>
 </body>

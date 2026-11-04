@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — PhoneMic</title>
+<meta name="description" content="How PhoneMic handles your data: audio is end-to-end encrypted and never stored, there is no account, no analytics and no advertising.">
+<link rel="canonical" href="https://site.dyzyzj.top/privacy.html">
+<meta property="og:title" content="Privacy Policy — PhoneMic">
+<meta property="og:description" content="Audio is end-to-end encrypted and never stored. No account, no analytics, no advertising.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://site.dyzyzj.top/assets/og.png">
+<meta name="theme-color" content="#2f6fed">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="./" aria-label="PhoneMic">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a4 4 0 0 0 4-4v-5a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4Z"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>
+      PhoneMic
+    </a>
+    <span class="spacer"></span>
+    <a class="link hide-sm" href="./" data-i18n="navHome">Home</a>
+    <a class="link" href="support.html" data-i18n="navHelp">Help</a>
+    <a class="link hide-sm" href="terms.html" data-i18n="navTerms">Terms</a>
+    <button class="lang" type="button">中文</button>
+  </div>
+</header>
+
+<main class="wrap narrow">
+  <div class="page-head">
+    <h1 data-i18n="h1">Privacy Policy</h1>
+    <p class="upd" data-i18n="upd">Last updated: 30 October 2026 · Applies to the PhoneMic desktop app and this website</p>
+  </div>
+
+  <div class="toc">
+    <ol>
+      <li><a href="#short" data-i18n="t1">The short version</a></li>
+      <li><a href="#audio" data-i18n="t2">What happens to your audio</a></li>
+      <li><a href="#collect" data-i18n="t3">What we collect</a></li>
+      <li><a href="#local" data-i18n="t4">Data stored on your device</a></li>
+      <li><a href="#third" data-i18n="t5">Third-party components</a></li>
+      <li><a href="#website" data-i18n="t6">This website</a></li>
+      <li><a href="#rights" data-i18n="t7">Your rights</a></li>
+      <li><a href="#contact" data-i18n="t8">Contact</a></li>
+    </ol>
+  </div>
+
+  <article class="legal">
+    <h2 id="short" data-i18n="h2short">1. The short version</h2>
+    <p data-i18n="pShort">PhoneMic turns your phone into a microphone for your computer. We do not run an account system, we do not have analytics, and we never receive your audio. There is nothing to sell and nothing to profile.</p>
+    <div class="note" data-i18n="noteShort">Your voice never reaches us in a readable form. Audio is encrypted on your phone and decrypted on your own computer.</div>
+
+    <h2 id="audio" data-i18n="h2audio">2. What happens to your audio</h2>
+    <p data-i18n="pAudio1">When you scan the pairing code, the desktop app and the phone page derive a shared session key from the pairing code together with an ECDH key exchange, using HKDF-SHA256.</p>
+    <p data-i18n="pAudio2">Everything you speak is encrypted on the phone with AES-256-GCM before it leaves the device, and decrypted only on your computer. The relay server forwards encrypted packets between the two devices. It cannot decrypt them, and it does not write audio to disk or to logs.</p>
+    <p data-i18n="pAudio3">On the same local network, PhoneMic prefers a direct connection between your phone and your computer, so the audio does not pass through any server at all.</p>
+    <p data-i18n="pAudio4">No recording is created at any point. The stream is live: audio that has been played on your computer is discarded and cannot be retrieved later, not even by you.</p>
+
+    <h2 id="collect" data-i18n="h2collect">3. What we collect</h2>
+    <p data-i18n="pCollect">Nothing that identifies you. Specifically:</p>
+    <ul>
+      <li data-i18n="c1"><b>No account data</b> — there is no sign-up, no email, no password, no license key.</li>
+      <li data-i18n="c2"><b>No analytics or telemetry</b> — the app does not phone home, and neither the app nor this website includes an analytics SDK, advertising script, tracking pixel or third-party font.</li>
+      <li data-i18n="c3"><b>No device identifiers</b> — we do not collect advertising IDs, IMEI, MAC addresses or hardware fingerprints.</li>
+      <li data-i18n="c4"><b>No audio, no transcripts</b> — see section 2.</li>
+      <li data-i18n="c5"><b>No crash reports</b> — the app contains no automatic crash-reporting service.</li>
+    </ul>
+    <p data-i18n="pCollect2">If you email us for support, we receive whatever you choose to include in that message (typically your email address, macOS or Windows version, and a description of the problem). We use it only to answer you and delete it once the issue is closed, at the latest after 12 months.</p>
+
+    <h2 id="local" data-i18n="h2local">4. Data stored on your device</h2>
+    <p data-i18n="pLocal1">The desktop app stores a small amount of configuration locally, on your own machine, and never uploads it:</p>
+    <ul>
+      <li data-i18n="l1">Your interface language preference.</li>
+      <li data-i18n="l2">The display names of audio devices you have selected.</li>
+      <li data-i18n="l3">Whether the app should launch at login (this is a system setting).</li>
+    </ul>
+    <p data-i18n="pLocal2">Removing the app and its configuration folder deletes all of it. There is no cloud copy to delete.</p>
+
+    <h2 id="third" data-i18n="h2third">5. Third-party components</h2>
+    <p data-i18n="pThird1"><b>BlackHole</b> (macOS). PhoneMic uses the open-source BlackHole virtual audio driver (GNU GPL v3.0) to expose a microphone device to other applications. BlackHole runs entirely on your computer and does not transmit data anywhere.</p>
+    <p data-i18n="pThird2"><b>VB-CABLE</b> (Windows). The Windows build works with VB-CABLE, a third-party virtual audio driver by VB-Audio. It is not bundled with PhoneMic and is not operated by us; you install it from the official VB-Audio website, and its own terms and privacy practices apply.</p>
+    <p data-i18n="pThird3"><b>Relay infrastructure.</b> The public relay runs on Cloudflare Workers and Durable Objects. Like any network provider, Cloudflare processes connection metadata (IP address, timestamps) necessary to deliver traffic, under its own privacy policy. Because traffic is end-to-end encrypted, the relay operator — including us — cannot see what is being transmitted. If you self-host the relay, no third party is involved at all.</p>
+
+    <h2 id="website" data-i18n="h2website">6. This website</h2>
+    <p data-i18n="pWeb1">This site is a set of static pages hosted on Cloudflare. It sets no advertising or tracking cookies, loads no external scripts, and embeds no fonts from third-party servers.</p>
+    <p data-i18n="pWeb2">Your browser stores one value in local storage — your language choice — so the page opens in the same language next time. It stays on your device and is never transmitted.</p>
+    <p data-i18n="pWeb3">Cloudflare, as the hosting provider, automatically processes standard technical request data (such as IP address, user agent and the requested URL) to serve the pages and protect against abuse. We do not build profiles from it and do not combine it with any other data.</p>
+
+    <h2 id="rights" data-i18n="h2rights">7. Your rights</h2>
+    <p data-i18n="pRights1">Because we hold no personal data about you, there is usually nothing to access, correct, export or delete on our side. If you have sent us a support email and want it removed, write to the address below and we will delete it.</p>
+    <p data-i18n="pRights2">If you are in the European Economic Area, the United Kingdom, Switzerland, California or another region with data-protection legislation, you retain all statutory rights over any data you have voluntarily sent us. We rely on your consent (when you email us) as the legal basis, and we do not sell or share personal information.</p>
+    <p data-i18n="pRights3">PhoneMic is not directed at children under 13, and we do not knowingly collect information from them.</p>
+
+    <h2 id="contact" data-i18n="h2contact">8. Changes and contact</h2>
+    <p data-i18n="pContact1">If this policy changes, the date at the top of this page changes with it, and material changes are noted in the app's release notes. Continued use after a change means you accept the updated policy.</p>
+    <p data-i18n="pContact2">Questions about privacy: <a href="mailto:support@dyzyzj.top">support@dyzyzj.top</a>. We answer within a few business days.</p>
+    <p data-i18n="pContact3">PhoneMic is free and open source; the complete source code is published so that these claims can be verified rather than trusted.</p>
+  </article>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="fbot" style="margin-top:0;border-top:0;padding-top:0">
+      <span>© <span id="year">2026</span> PhoneMic</span>
+      <span class="spacer"></span>
+      <a href="./" data-i18n="fHome">Home</a>
+      <a href="support.html" data-i18n="fHelp">Help</a>
+      <a href="terms.html" data-i18n="fTerms">Terms</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+<script>
+initSite({
+  titles: { en: "Privacy Policy — PhoneMic", zh: "隐私政策 — PhoneMic" },
+  desc: {
+    en: "How PhoneMic handles your data: audio is end-to-end encrypted and never stored, there is no account, no analytics and no advertising.",
+    zh: "PhoneMic 如何处理你的数据：音频端到端加密且从不保存，无账号、无统计、无广告。"
+  },
+  i18n: {
+    en: {},
+    zh: {
+      navHome: "首页", navHelp: "帮助", navTerms: "条款",
+      h1: "隐私政策",
+      upd: "最后更新：2026 年 10 月 30 日 · 适用于 PhoneMic 桌面应用与本网站",
+      t1: "一句话版本", t2: "你的音频去了哪里", t3: "我们收集什么", t4: "存在你设备上的数据",
+      t5: "第三方组件", t6: "关于本网站", t7: "你的权利", t8: "联系与变更",
+
+      h2short: "1. 一句话版本",
+      pShort: "PhoneMic 把手机变成电脑的麦克风。我们没有账号系统，没有数据统计，也从不接收你的音频。没有数据可卖，也没有画像可做。",
+      noteShort: "你的声音永远不会以可读形式到达我们这里。音频在手机上加密，只在你自己的电脑上解密。",
+      h2audio: "2. 你的音频去了哪里",
+      pAudio1: "扫码配对时，桌面端与手机页面会用配对码加上 ECDH 密钥交换，通过 HKDF-SHA256 派生出一个共享的会话密钥。",
+      pAudio2: "你说的每一句话在离开手机之前就用 AES-256-GCM 加密，只在你自己的电脑上解密。中继服务器在两台设备之间转发加密数据包 —— 它解不开，也不会把音频写入磁盘或日志。",
+      pAudio3: "在同一个局域网内，PhoneMic 优先建立手机与电脑之间的直连，音频完全不经过任何服务器。",
+      pAudio4: "全程不产生任何录音。音频是实时流：在你的电脑上播放过的声音随即被丢弃，之后无法找回，你自己也不行。",
+      h2collect: "3. 我们收集什么",
+      pCollect: "没有任何可识别你身份的信息。具体来说：",
+      c1: "<b>没有账号数据</b> —— 不注册、不收邮箱、不要密码、没有激活码。",
+      c2: "<b>没有统计和遥测</b> —— 应用不会回传数据；应用和本网站都不含统计 SDK、广告脚本、追踪像素或第三方字体。",
+      c3: "<b>没有设备标识</b> —— 我们不采集广告 ID、IMEI、MAC 地址或硬件指纹。",
+      c4: "<b>没有音频、没有转写文本</b> —— 见第 2 节。",
+      c5: "<b>没有崩溃上报</b> —— 应用内不含任何自动崩溃收集服务。",
+      pCollect2: "如果你发邮件求助，我们会收到你在邮件里主动写下的内容（通常是邮箱地址、macOS 或 Windows 版本、以及问题描述）。这些只用于回复你，问题关闭后即删除，最迟不超过 12 个月。",
+      h2local: "4. 存在你设备上的数据",
+      pLocal1: "桌面端只在你自己机器上保存少量配置，从不上传：",
+      l1: "界面语言偏好。",
+      l2: "你选择过的音频设备显示名称。",
+      l3: "是否开机自启（这是系统设置项）。",
+      pLocal2: "删除应用及其配置目录就会全部清除。没有云端副本需要删除。",
+      h2third: "5. 第三方组件",
+      pThird1: "<b>BlackHole（macOS）</b>：PhoneMic 使用开源的 BlackHole 虚拟声卡驱动（GNU GPL v3.0）向其他应用暴露一个麦克风设备。BlackHole 完全运行在你的电脑上，不向任何地方传输数据。",
+      pThird2: "<b>VB-CABLE（Windows）</b>：Windows 版配合 VB-Audio 的第三方虚拟声卡 VB-CABLE 工作。它不随 PhoneMic 分发，也不由我们运营；你需要从 VB-Audio 官网自行安装，适用其自身的条款与隐私做法。",
+      pThird3: "<b>中继基础设施</b>：公共中继运行在 Cloudflare Workers 与 Durable Objects 上。与任何网络服务商一样，Cloudflare 会为传输流量处理必要的连接元数据（IP 地址、时间戳），适用其自身的隐私政策。由于流量是端到端加密的，中继运营方 —— 包括我们 —— 无法看到传输内容。如果你自建中继，则完全不涉及任何第三方。",
+      h2website: "6. 关于本网站",
+      pWeb1: "本站是一组托管在 Cloudflare 上的静态页面。不设广告或追踪 Cookie，不加载外部脚本，也不从第三方服务器拉取字体。",
+      pWeb2: "你的浏览器会在本地存储里保存一项 —— 你的语言选择 —— 以便下次用同样的语言打开。它留在你的设备上，不会被传输。",
+      pWeb3: "作为托管服务商，Cloudflare 会自动处理标准的技术请求数据（如 IP 地址、User-Agent、请求的 URL）用于提供页面和防御滥用。我们不会据此建立画像，也不会与其他数据合并。",
+      h2rights: "7. 你的权利",
+      pRights1: "由于我们不持有你的任何个人数据，通常我们这边没有可供查询、更正、导出或删除的内容。如果你曾给我们发过求助邮件并希望删除，写信到下面的地址，我们会删掉。",
+      pRights2: "如果你是欧洲经济区、英国、瑞士、加州或其他有数据保护立法的地区居民，你对自愿发送给我们的数据保有全部法定权利。我们以你的同意（你主动发邮件）为合法性基础，且从不出售或共享个人信息。",
+      pRights3: "PhoneMic 不面向 13 岁以下儿童，我们也不会有意收集其信息。",
+      h2contact: "8. 联系与变更",
+      pContact1: "本政策如有变更，页首日期会同步更新，重要变更会在应用的更新日志中说明。变更后继续使用即视为接受更新后的政策。",
+      pContact2: "隐私相关问题请联系：<a href=\"mailto:support@dyzyzj.top\">support@dyzyzj.top</a>，我们会在几个工作日内回复。",
+      pContact3: "PhoneMic 免费且开源，完整源代码已公开 —— 以上说法都可以被验证，而不需要你选择相信。",
+
+      fHome: "首页", fHelp: "帮助", fTerms: "条款"
+    }
+  }
+});
+</script>
+</body>
+</html>

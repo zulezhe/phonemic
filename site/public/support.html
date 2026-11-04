@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Help &amp; Support — PhoneMic</title>
+<meta name="description" content="Setup requirements, troubleshooting for common issues, and how to contact PhoneMic support.">
+<link rel="canonical" href="https://site.dyzyzj.top/support.html">
+<meta property="og:title" content="Help &amp; Support — PhoneMic">
+<meta property="og:description" content="Setup requirements, troubleshooting and contact.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://site.dyzyzj.top/assets/og.png">
+<meta name="theme-color" content="#2f6fed">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="./" aria-label="PhoneMic">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a4 4 0 0 0 4-4v-5a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4Z"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>
+      PhoneMic
+    </a>
+    <span class="spacer"></span>
+    <a class="link hide-sm" href="./" data-i18n="navHome">Home</a>
+    <a class="link hide-sm" href="./#faq" data-i18n="navFaq">FAQ</a>
+    <a class="link" href="privacy.html" data-i18n="navPriv">Privacy</a>
+    <button class="lang" type="button">中文</button>
+  </div>
+</header>
+
+<main class="wrap narrow">
+  <div class="page-head">
+    <h1 data-i18n="h1">Help &amp; support</h1>
+    <p class="upd" data-i18n="upd">Setup, troubleshooting and how to reach a human</p>
+  </div>
+
+  <article class="legal">
+    <h2 id="req" data-i18n="h2req">System requirements</h2>
+    <ul>
+      <li data-i18n="r1"><b>Computer</b> — macOS 12 Monterey or later. A Windows build is in preparation.</li>
+      <li data-i18n="r2"><b>Phone</b> — iOS 15+ with Safari or Chrome, or Android 8+ with Chrome. Any browser that grants microphone access over HTTPS works.</li>
+      <li data-i18n="r3"><b>Network</b> — both devices need internet access for the cloud relay. On the same Wi-Fi, no internet is required.</li>
+      <li data-i18n="r4"><b>Permissions</b> — the phone must allow microphone access for the pairing page, and the desktop app needs permission to install the virtual audio driver once.</li>
+    </ul>
+
+    <h2 id="setup" data-i18n="h2setup">First-run setup</h2>
+    <ol>
+      <li data-i18n="st1">Open PhoneMic. If the virtual microphone is not installed yet, the app offers to install it — this asks for your macOS password once.</li>
+      <li data-i18n="st2">Point your phone camera at the QR code on screen and open the link.</li>
+      <li data-i18n="st3">Tap <b>Allow</b> when the browser asks for the microphone.</li>
+      <li data-i18n="st4">In the app you want to talk into (Zoom, OBS, a dictation tool…), choose <b>PhoneMic</b> or <b>BlackHole 2ch</b> as the input device.</li>
+    </ol>
+
+    <h2 id="trouble" data-i18n="h2trouble">Troubleshooting</h2>
+
+    <div class="qbox">
+      <h3 data-i18n="tq1">The app shows no input level, or the other app hears nothing</h3>
+      <ul>
+        <li data-i18n="ta1a">Check that the microphone is actually installed: open <b>Audio MIDI Setup</b> and look for <b>BlackHole 2ch</b> in the device list. If it is missing, run the driver installer again from the app.</li>
+        <li data-i18n="ta1b">Check the input device selected inside <b>the other application</b> — many apps keep their own override and ignore the system default.</li>
+        <li data-i18n="ta1c">In <b>System Settings → Sound → Input</b>, confirm the level meter moves while you speak into the phone.</li>
+        <li data-i18n="ta1d">If the meter moves but the app stays silent, the app is listening to a different device — fix it in that app's audio settings.</li>
+      </ul>
+    </div>
+
+    <div class="qbox">
+      <h3 data-i18n="tq2">The phone shows a certificate warning</h3>
+      <p data-i18n="ta2a">In local-network mode the desktop app serves the pairing page over HTTPS with a certificate created on your own machine, so browsers cannot verify it against a public authority. That warning is expected.</p>
+      <p data-i18n="ta2b">Tap <b>Advanced → Proceed</b> to continue. The pairing page offers optional steps to install the local certificate authority, which removes the warning for future visits. Only do this for your own computer's certificate.</p>
+    </div>
+
+    <div class="qbox">
+      <h3 data-i18n="tq3">The QR code link does not open on the phone</h3>
+      <ul>
+        <li data-i18n="ta3a">Make sure the phone and the computer are on the same Wi-Fi network, then try again — the code contains a local address by default.</li>
+        <li data-i18n="ta3b">Guest Wi-Fi networks and some routers block communication between devices ("AP isolation"). Use a normal network, or stay on the relay path which works across networks.</li>
+        <li data-i18n="ta3c">If the code has expired, press refresh in the app to generate a new one.</li>
+      </ul>
+    </div>
+
+    <div class="qbox">
+      <h3 data-i18n="tq4">Audio cuts out when the phone screen locks</h3>
+      <p data-i18n="ta4a">iOS suspends microphone capture when the browser goes to the background or the screen locks. Keep the pairing page in the foreground while you talk. PhoneMic is designed for dictation-length sessions rather than hours of continuous recording.</p>
+    </div>
+
+    <div class="qbox">
+      <h3 data-i18n="tq5">Latency is high or the audio stutters</h3>
+      <ul>
+        <li data-i18n="ta5a">On the same network, PhoneMic uses a direct link (about 6 ms). If the app reports relay mode on the same Wi-Fi, the direct connection failed — see the previous item about network isolation.</li>
+        <li data-i18n="ta5b">Across networks, 30–120 ms is normal and depends on both internet connections.</li>
+        <li data-i18n="ta5c">Weak phone signal or a busy Wi-Fi channel is the usual cause of stutter. Moving closer to the access point usually fixes it.</li>
+      </ul>
+    </div>
+
+    <div class="qbox">
+      <h3 data-i18n="tq6">macOS refuses to open the app</h3>
+      <p data-i18n="ta6a">Official builds are signed and notarized by Apple. If macOS still blocks it, open <b>System Settings → Privacy &amp; Security</b> and allow the app there. Never download PhoneMic from anywhere except the official release page.</p>
+    </div>
+
+    <div class="qbox">
+      <h3 data-i18n="tq7">Windows: VB-CABLE will not install</h3>
+      <ul>
+        <li data-i18n="ta7a">Download it only from the official VB-Audio site. The installer needs administrator rights and a restart of the audio service.</li>
+        <li data-i18n="ta7b">After installing, restart PhoneMic so it can detect the new device.</li>
+        <li data-i18n="ta7c">If Windows blocks the driver signature, check that you installed the 64-bit package for your Windows version.</li>
+      </ul>
+    </div>
+
+    <h2 id="remove" data-i18n="h2remove">Uninstalling</h2>
+    <p data-i18n="rm1"><b>Remove the app</b> — drag PhoneMic from Applications to the Bin, then empty it.</p>
+    <p data-i18n="rm2"><b>Remove the virtual microphone</b> (only if you do not use it for anything else) — delete <code>/Library/Audio/Plug-Ins/HAL/BlackHole2ch.driver</code> and restart your Mac. Other applications may depend on BlackHole, so it is safe to leave it installed.</p>
+    <p data-i18n="rm3"><b>Remove local settings</b> — delete the app's configuration folder inside <code>~/Library/Application Support</code>. Nothing is stored anywhere else.</p>
+
+    <h2 id="legal" data-i18n="h2legal">Recording responsibly</h2>
+    <p data-i18n="lg1">PhoneMic is a microphone, not a recording service — it stores nothing. If you record other people with it, laws in many countries require their consent. You are responsible for how you use the audio.</p>
+
+    <div class="contact">
+      <h3 data-i18n="ctTitle">Still stuck?</h3>
+      <p data-i18n="ctBody">Email us and include your macOS or Windows version, the PhoneMic version, and what you see on screen. Screenshots help.</p>
+      <p><a href="mailto:support@dyzyzj.top?subject=PhoneMic%20support">support@dyzyzj.top</a></p>
+      <p data-i18n="ctBody2">Bugs and feature requests are also welcome on the issue tracker: <a href="https://github.com/zulezhe/phonemic/issues">github.com/zulezhe/phonemic/issues</a></p>
+    </div>
+  </article>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="fbot" style="margin-top:0;border-top:0;padding-top:0">
+      <span>© <span id="year">2026</span> PhoneMic</span>
+      <span class="spacer"></span>
+      <a href="./" data-i18n="fHome">Home</a>
+      <a href="privacy.html" data-i18n="fPriv">Privacy</a>
+      <a href="terms.html" data-i18n="fTerms">Terms</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+<script>
+initSite({
+  titles: { en: "Help & Support — PhoneMic", zh: "帮助与支持 — PhoneMic" },
+  desc: {
+    en: "Setup requirements, troubleshooting for common issues, and how to contact PhoneMic support.",
+    zh: "系统要求、常见问题排查，以及如何联系 PhoneMic 支持。"
+  },
+  i18n: {
+    en: {},
+    zh: {
+      navHome: "首页", navFaq: "常见问题", navPriv: "隐私",
+      h1: "帮助与支持", upd: "安装要求、故障排查，以及怎么找到真人",
+      h2req: "系统要求",
+      r1: "<b>电脑</b> —— macOS 12 Monterey 或更高。Windows 版正在准备中。",
+      r2: "<b>手机</b> —— iOS 15+ 的 Safari 或 Chrome，或安卓 8+ 的 Chrome。任何能在 HTTPS 下授予麦克风权限的浏览器都可以。",
+      r3: "<b>网络</b> —— 走云端中继时两台设备都需要联网。在同一个 Wi-Fi 下则不需要外网。",
+      r4: "<b>权限</b> —— 手机需允许配对页使用麦克风；桌面端首次安装虚拟声卡需要一次授权。",
+      h2setup: "首次安装",
+      st1: "打开 PhoneMic。如果还没装虚拟麦克风，应用会提示安装 —— 这一步需要输入一次 macOS 密码。",
+      st2: "用手机相机对准屏幕上的二维码，打开链接。",
+      st3: "浏览器询问麦克风权限时点<b>允许</b>。",
+      st4: "在你要说话的应用里（Zoom、OBS、语音输入工具……）把输入设备选成 <b>PhoneMic</b> 或 <b>BlackHole 2ch</b>。",
+      h2trouble: "故障排查",
+      tq1: "应用里没有电平，或对方听不到声音",
+      ta1a: "先确认驱动真的装上了：打开<b>音频 MIDI 设置</b>，在设备列表里找 <b>BlackHole 2ch</b>。没有的话，回到应用里重新运行驱动安装。",
+      ta1b: "检查<b>那个应用自己</b>的输入设备设置 —— 很多应用有自己的覆盖设置，会忽略系统默认。",
+      ta1c: "在<b>系统设置 → 声音 → 输入</b>里确认：对着手机说话时电平条是否跳动。",
+      ta1d: "如果电平在跳但应用没声音，说明应用听的是别的设备 —— 去它的音频设置里改。",
+      tq2: "手机提示证书不安全",
+      ta2a: "在局域网模式下，桌面端用一张在你本机生成的证书提供 HTTPS，浏览器无法用公共机构校验它，所以出现这个警告是正常的。",
+      ta2b: "点<b>高级 → 继续访问</b>即可。配对页里还提供了可选步骤来安装本地根证书，装完后以后就不再有提示。请只为你自己电脑的证书这么做。",
+      tq3: "手机上打不开二维码链接",
+      ta3a: "先确认手机和电脑连的是同一个 Wi-Fi，再试一次 —— 二维码默认包含局域网地址。",
+      ta3b: "访客 Wi-Fi 和部分路由器会阻断设备间通信（AP 隔离）。换普通网络，或改用跨网络中继方式。",
+      ta3c: "如果二维码已过期，点应用里的刷新生成一个新的。",
+      tq4: "手机锁屏后声音就断了",
+      ta4a: "iOS 在浏览器切到后台或锁屏时会挂起麦克风采集。说话时请让配对页保持在前台。PhoneMic 面向的是听写这种短时使用，不是长时间连续录音。",
+      tq5: "延迟高或声音卡顿",
+      ta5a: "同一网络下 PhoneMic 走直连（约 6ms）。如果在同一 Wi-Fi 下应用显示走的是中继，说明直连没建立起来 —— 参见上一条的网络隔离问题。",
+      ta5b: "跨网络时 30–120ms 属正常范围，取决于两端的网络质量。",
+      ta5c: "手机信号弱或 Wi-Fi 信道拥挤是卡顿的常见原因，靠近路由器通常就能解决。",
+      tq6: "macOS 不让我打开这个应用",
+      ta6a: "正式版本经过 Apple 签名和公证。如果仍被拦截，去<b>系统设置 → 隐私与安全性</b>里放行。请只从官方发布页下载 PhoneMic。",
+      tq7: "Windows：VB-CABLE 装不上",
+      ta7a: "只从 VB-Audio 官网下载。安装程序需要管理员权限，并会重启音频服务。",
+      ta7b: "装完后重启 PhoneMic，它才能识别到新设备。",
+      ta7c: "如果 Windows 拦截驱动签名，确认你装的是与系统版本匹配的 64 位安装包。",
+      h2remove: "卸载",
+      rm1: "<b>删除应用</b> —— 把 PhoneMic 从「应用程序」拖进废纸篓，然后清空。",
+      rm2: "<b>删除虚拟麦克风</b>（只有在你不用于其他用途时才需要）—— 删掉 <code>/Library/Audio/Plug-Ins/HAL/BlackHole2ch.driver</code> 并重启 Mac。其他应用可能依赖 BlackHole，留着也是安全的。",
+      rm3: "<b>清除本地设置</b> —— 删除 <code>~/Library/Application Support</code> 下应用对应的配置目录。除此之外没有别处存有数据。",
+      h2legal: "关于录音合规",
+      lg1: "PhoneMic 是麦克风，不是录音服务 —— 它什么都不保存。如果你用它录制他人，许多国家和地区的法律要求取得对方同意。音频如何使用由你负责。",
+      ctTitle: "还是没解决？",
+      ctBody: "发邮件给我们，请附上 macOS 或 Windows 版本、PhoneMic 版本，以及屏幕上看到的现象。有截图更好。",
+      ctBody2: "Bug 和功能建议也欢迎提到 issue 区：<a href=\"https://github.com/zulezhe/phonemic/issues\">github.com/zulezhe/phonemic/issues</a>",
+      fHome: "首页", fPriv: "隐私", fTerms: "条款"
+    }
+  }
+});
+</script>
+</body>
+</html>

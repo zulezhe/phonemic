@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://site.dyzyzj.top/sitemap.xml
