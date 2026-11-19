@@ -1,0 +1,32 @@
+name: Pages
+on:
+  push:
+    branches: [main]
+    paths: [site/public/**, .github/workflows/pages.yml]
+  workflow_dispatch: {}
+
+# Pages 部署需要三权限；并发组防抖，同名旧部署排队不取消（避免部署窗口期站点短暂 404）
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          # 纯静态站（HTML/CSS/JS/OG 图），无需构建
+          path: site/public
+      - id: deployment
+        uses: actions/deploy-pages@v4
